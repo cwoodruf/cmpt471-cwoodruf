@@ -34,6 +34,7 @@ void sr_init(struct sr_instance* sr)
     assert(sr);
 
     /* Add initialization code here! */
+    printf("*** > initializing sr_instance\n");
 
 } /* -- sr_init -- */
 
