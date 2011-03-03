@@ -25,6 +25,7 @@
 #endif
 
 #define sr_IFACE_NAMELEN 32
+#include "sr_protocol.h"
 
 struct sr_instance;
 
@@ -38,7 +39,7 @@ struct sr_instance;
 struct sr_if
 {
     char name[sr_IFACE_NAMELEN];
-    unsigned char addr[6];
+    unsigned char addr[ETHER_ADDR_LEN];
     uint32_t ip;
     uint32_t speed;
     struct sr_if* next;

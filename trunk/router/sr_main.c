@@ -45,7 +45,7 @@ extern char* optarg;
 /* #define DEFAULT_SERVER "171.67.71.18" */
 #define DEFAULT_SERVER "vns-1.stanford.edu"
 #define DEFAULT_RTABLE "rtable"
-#define DEFAULT_TOPO 0
+#define DEFAULT_TOPO 408
 
 static void usage(char* );
 static void sr_init_instance(struct sr_instance* );

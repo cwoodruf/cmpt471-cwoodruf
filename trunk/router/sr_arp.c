@@ -90,14 +90,14 @@ void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface)
 	assert(sr);
 	assert(ip);
 	assert(interface);
-
+	assert(iface);
 	/* ethernet header for broadcast */
-	memset((void *)packet,0,sizeof(packet));
+	memset((void *)packet, 0, sizeof(packet));
 	for (i=0; i<ETHER_ADDR_LEN; i++) {
 		e_hdr->ether_dhost[i] = 0xFF;
+		e_hdr->ether_shost[i] = iface->addr[i]; 
 	} 
-	memcpy(e_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
-	e_hdr->ether_type = ETHERTYPE_ARP;
+	e_hdr->ether_type = htons(ETHERTYPE_ARP);
 
         /* arp message for broadcast */
 	a_hdr->ar_hrd = htons(ARPHDR_ETHER);
@@ -126,6 +126,7 @@ void sr_arp_scan(struct sr_instance* sr)
 {
     struct sr_rt* rt_walker = 0;
 
+    assert(sr);
     if(sr->routing_table == 0)
     {
         printf(" *warning* Routing table empty \n");

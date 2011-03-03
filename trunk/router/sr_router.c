@@ -36,8 +36,6 @@ void sr_init(struct sr_instance* sr)
 
     printf("sr_init: zero out arp table\n");
     memset(sr->arp_table,0,sizeof(sr->arp_table)); 
-    printf("sr_init: scan routing table for gateways and make arp requests for them\n");
-    sr_arp_scan(sr);
 
 } /* -- sr_init -- */
 
