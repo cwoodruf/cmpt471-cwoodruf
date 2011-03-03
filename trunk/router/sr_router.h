@@ -10,7 +10,7 @@
 #define SR_ROUTER_H
 
 #include <netinet/in.h>
-#include <sys/time.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "sr_protocol.h"
@@ -27,7 +27,6 @@
 #define DebugMAC(x) do{}while(0)
 #endif
 
-#define INIT_TTL 255
 #define PACKET_DUMP_SIZE 1024
 
 /* forward declare */
@@ -55,6 +54,14 @@ struct sr_instance
     struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.*  */
     FILE* logfile;
 };
+
+/* -- sr_arp.c -- */
+int sr_arp_get_index(uint32_t ip);
+int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface);
+unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip);
+void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface);
+void sr_arp_scan(struct sr_instance* sr);
+
 
 /* -- sr_main.c -- */
 int sr_verify_routing_table(struct sr_instance* sr);

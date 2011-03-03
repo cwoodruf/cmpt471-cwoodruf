@@ -42,7 +42,8 @@ extern char* optarg;
 #define DEFAULT_AUTH_KEY_FILE "auth_key"
 #define DEFAULT_PORT 3250
 #define DEFAULT_HOST "vrhost"
-#define DEFAULT_SERVER "171.67.71.18"
+/* #define DEFAULT_SERVER "171.67.71.18" */
+#define DEFAULT_SERVER "vns-1.stanford.edu"
 #define DEFAULT_RTABLE "rtable"
 #define DEFAULT_TOPO 0
 
