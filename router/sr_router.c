@@ -36,7 +36,8 @@ void sr_init(struct sr_instance* sr)
 
     printf("sr_init: zero out arp table\n");
     memset(sr->arp_table,0,sizeof(sr->arp_table)); 
-    printf("sr_init: TODO scan routing table for local hosts and make arp requests for them\n");
+    printf("sr_init: scan routing table for gateways and make arp requests for them\n");
+    sr_arp_scan(sr);
 
 } /* -- sr_init -- */
 
@@ -67,6 +68,7 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_ethernet_hdr* e_hdr = 0;
     struct sr_arphdr*       a_hdr = 0;
     uint32_t                tmp_ip;
+    struct in_addr          pr_ip;
 
     /* REQUIRES */
     assert(sr);
@@ -75,7 +77,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
     e_hdr = (struct sr_ethernet_hdr*)packet;
 
-    printf("Ethernet destination MAC: %lx ",e_hdr->ether_dhost); DebugMAC(e_hdr->ether_dhost); 
+    printf("Ethernet destination MAC: %lx ", (long unsigned int) e_hdr->ether_dhost); DebugMAC(e_hdr->ether_dhost); 
     printf(" ethernet source MAC: "); DebugMAC(e_hdr->ether_shost); printf("\n");
 
     switch (ntohs(e_hdr->ether_type)) {
@@ -102,6 +104,14 @@ void sr_handlepacket(struct sr_instance* sr,
         break;
         case ARP_REPLY:
             printf("ARP reply - update ARP table\n");
+	    pr_ip.s_addr = a_hdr->ar_sip;
+	    printf(
+		"set index %d with ip %s and MAC ", 
+		sr_arp_set(sr, a_hdr->ar_sip, a_hdr->ar_sha, interface),
+		inet_ntoa(pr_ip)
+	    );
+	    DebugMAC(a_hdr->ar_sha);
+	    printf("\n");
         break;
         default:
             printf("ARP ERROR: don't know what %d is!\n", a_hdr->ar_op);
