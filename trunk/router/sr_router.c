@@ -34,8 +34,9 @@ void sr_init(struct sr_instance* sr)
     /* REQUIRES */
     assert(sr);
 
-    printf("*** > initializing sr_instance\n");
-    /* Add initialization code here! */
+    printf("sr_init: zero out arp table\n");
+    memset(sr->arp_table,0,sizeof(sr->arp_table)); 
+    printf("sr_init: TODO scan routing table for local hosts and make arp requests for them\n");
 
 } /* -- sr_init -- */
 
@@ -74,29 +75,25 @@ void sr_handlepacket(struct sr_instance* sr,
 
     e_hdr = (struct sr_ethernet_hdr*)packet;
 
-    printf("Ethernet destination MAC: "); DebugMAC(e_hdr->ether_dhost); 
+    printf("Ethernet destination MAC: %lx ",e_hdr->ether_dhost); DebugMAC(e_hdr->ether_dhost); 
     printf(" ethernet source MAC: "); DebugMAC(e_hdr->ether_shost); printf("\n");
 
     switch (ntohs(e_hdr->ether_type)) {
-    case IPPROTO_ICMP: 
-        printf("ICMP packet\n");
-    break;
     case ETHERTYPE_IP:
         printf("IP packet\n");
     break;
     case ETHERTYPE_ARP:
-        printf("ARP request\n");
         a_hdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
-        memcpy(e_hdr->ether_dhost,e_hdr->ether_shost,ETHER_ADDR_LEN);
-        memcpy(e_hdr->ether_shost,iface->addr,ETHER_ADDR_LEN);
+        memcpy(e_hdr->ether_dhost, e_hdr->ether_shost, ETHER_ADDR_LEN);
+        memcpy(e_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
 
         switch (ntohs(a_hdr->ar_op)) {
         case ARP_REQUEST: 
             printf("ARP request - sending ARP reply\n");
             a_hdr->ar_op = htons(ARP_REPLY);
             /* basically swap but add our ethernet address instead of the broadcast */
-    	    memcpy(a_hdr->ar_tha,a_hdr->ar_sha,ETHER_ADDR_LEN);
-    	    memcpy(a_hdr->ar_sha,iface->addr,ETHER_ADDR_LEN);
+    	    memcpy(a_hdr->ar_tha, a_hdr->ar_sha, ETHER_ADDR_LEN);
+    	    memcpy(a_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
             /* swap IPs as well of course */
             tmp_ip = a_hdr->ar_sip;
             a_hdr->ar_sip = a_hdr->ar_tip; 

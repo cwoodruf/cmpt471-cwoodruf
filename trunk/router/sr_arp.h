@@ -29,8 +29,11 @@ typedef struct {
 int sr_arp_get_index(uint32_t ip);
 
 /** arp getter and setter */
-int sr_arp_set_entry(sr_instance* sr, uint32_t ip, unsigned char* mac);
-unsigned char* sr_arp_get_entry(sr_instance* sr, uint32_t ip);
+int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac);
+unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip);
+
+/** do an arp broadcast to get an updated entry for an ip */
+void sr_arp_refresh(struct sr_instance* sr, uint32_t ip);
 
 /** may want a method to check all entries */
 
