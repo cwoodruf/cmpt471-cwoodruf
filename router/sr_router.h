@@ -52,7 +52,7 @@ struct sr_instance
     struct sockaddr_in sr_addr; /* address to server */
     struct sr_if* if_list; /* list of interfaces */
     struct sr_rt* routing_table; /* routing table */
-    struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood  */
+    struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.*  */
     FILE* logfile;
 };
 
