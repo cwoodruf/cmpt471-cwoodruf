@@ -70,6 +70,7 @@ int sr_verify_routing_table(struct sr_instance* sr);
 int sr_send_packet(struct sr_instance* , uint8_t* , unsigned int , const char*);
 int sr_connect_to_server(struct sr_instance* ,unsigned short , char* );
 int sr_read_from_server(struct sr_instance* );
+void sr_log_packet(struct sr_instance* sr, uint8_t* buf, int len );
 
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* );

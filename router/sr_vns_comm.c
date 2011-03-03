@@ -44,7 +44,7 @@
 #include "sha1.h"
 #include "vnscommand.h"
 
-static void sr_log_packet(struct sr_instance* , uint8_t* , int );
+/* static void sr_log_packet(struct sr_instance* , uint8_t* , int ); */
 static int  sr_arp_req_not_for_us(struct sr_instance* sr,
                                   uint8_t * packet /* lent */,
                                   unsigned int len,
@@ -210,7 +210,8 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
 
     printf("Router interfaces:\n");
     sr_print_if_list(sr);
-
+    printf("Sending arp broadcasts\n");
+    sr_arp_scan(sr);
     return num_entries;
 } /* -- sr_handle_hwinfo -- */
 
