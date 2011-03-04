@@ -67,7 +67,8 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_if*           iface = sr_get_interface(sr,interface);
     struct sr_ethernet_hdr* e_hdr = 0;
     struct sr_arphdr*       a_hdr = 0;
-    uint32_t                tmp_ip;
+    struct ip*              ip_hdr = 0;
+    struct sr_ip_handle     ip_handler;
 
     /* REQUIRES */
     assert(sr);
@@ -79,44 +80,51 @@ void sr_handlepacket(struct sr_instance* sr,
     printf("ROUTER: Ethernet destination MAC: "); DebugMAC(e_hdr->ether_dhost); 
     printf(" ethernet source MAC: "); DebugMAC(e_hdr->ether_shost); printf("\n");
 
-    switch (ntohs(e_hdr->ether_type)) {
+    switch (ntohs(e_hdr->ether_type)) 
+    {
     case ETHERTYPE_IP:
         printf("ROUTER: IP packet\n");
+        ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
+
+        memset(&ip_handler,0,sizeof(struct sr_ip_handle));
+        ip_handler.sr = sr;
+        ip_handler.e_hdr = e_hdr;
+        ip_handler.ip_hdr = ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
+        ip_handler.packet = packet;
+        ip_handler.len = len;
+        ip_handler.iface = iface;
+
+        if (ip_hdr->ip_ttl <= 1) {
+            printf("ROUTER: ttl expired!\n");
+            sr_icmp_time_exceeded(&ip_handler);
+            break;
+        }
+        switch(ip_hdr->ip_p)
+        {
+        case IPPROTO_ICMP:
+            printf("ROUTER: ICMP protocol\n");
+            sr_icmp_handler(&ip_handler);
+        break;
+        default:
+            printf("ROUTER: Other IP protocol %d\n", ip_hdr->ip_p);
+            sr_ip_handler(&ip_handler);
+        }
     break;
     case ETHERTYPE_ARP:
         a_hdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
-        memcpy(e_hdr->ether_dhost, e_hdr->ether_shost, ETHER_ADDR_LEN);
-        memcpy(e_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
-
-        switch (ntohs(a_hdr->ar_op)) {
+        switch (ntohs(a_hdr->ar_op)) 
+        {
         case ARP_REQUEST: 
             printf("ROUTER: ARP request - sending ARP reply\n");
-            a_hdr->ar_op = htons(ARP_REPLY);
-            /* basically swap but add our ethernet address instead of the broadcast */
-    	    memcpy(a_hdr->ar_tha, a_hdr->ar_sha, ETHER_ADDR_LEN);
-    	    memcpy(a_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
-            /* swap IPs as well of course */
-            tmp_ip = a_hdr->ar_sip;
-            a_hdr->ar_sip = a_hdr->ar_tip; 
-            a_hdr->ar_tip = tmp_ip; 
-            sr_send_packet(sr, (uint8_t*)packet, len, interface);
+            sr_arp_request_response(sr,packet,len,iface);
         break;
         case ARP_REPLY:
             printf("ROUTER: ARP reply - update ARP table\n");
-	    sr_arp_set(sr, a_hdr->ar_sip, a_hdr->ar_sha, interface);
+            sr_arp_set(sr, a_hdr->ar_sip, a_hdr->ar_sha, interface);
         break;
         default:
             printf("ROUTER: ARP ERROR: don't know what %d is!\n", a_hdr->ar_op);
         }
-        printf("ROUTER: Ethernet destination: ");
-        DebugMAC(e_hdr->ether_dhost);
-        printf(" ethernet source MAC: ");
-        DebugMAC(e_hdr->ether_shost);
-        printf("\nROUTER: arp packet: sender ");
-        DebugMAC(a_hdr->ar_tha);
-        printf(" target ");
-        DebugMAC(a_hdr->ar_sha);
-        printf("\n");
     break;
     default:
         printf("ROUTER: ERROR: don't know what %d ethernet packet type is!\n", e_hdr->ether_type);
