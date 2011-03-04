@@ -260,13 +260,13 @@ void sr_arp_print_table(struct sr_instance* sr)
  */
 void sr_arp_print_entry(int i, struct sr_arp entry) 
 {
-	time_t t, ttl;
+	time_t t, age;
 	struct in_addr pr_ip;
 
 	pr_ip.s_addr = entry.ip;
-	ttl = entry.created - time(&t);
+	age = time(&t) - entry.created;
 
-	printf("ARP: table entry %d ip %s ttl %ld created %ld ",i, inet_ntoa(pr_ip), ttl, entry.created);
+	printf("ARP: table entry %d ip %s age %ld created %ld ",i, inet_ntoa(pr_ip), age, entry.created);
 	DebugMAC(entry.mac);
 	printf("\n");
 }
