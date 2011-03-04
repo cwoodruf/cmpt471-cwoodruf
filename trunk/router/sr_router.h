@@ -40,6 +40,11 @@ struct sr_rt;
  * Encapsulation of the state for a single virtual router.
  *
  * -------------------------------------------------------------------------- */
+#define SR_BUFF_SIZE 1024
+struct sr_packet {
+	uint8_t data[8192];
+	struct sr_if* iface;
+};
 
 struct sr_instance
 {
@@ -54,6 +59,7 @@ struct sr_instance
     struct sr_rt* routing_table; /* routing table */
     time_t arp_lastrefresh; /** last time we ran sr_arp_check_refresh in sr_arp.c */
     struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.h  */
+    struct sr_packet buffer[SR_BUFF_SIZE]; /** backlog of packets: see sr_ip.* */
     FILE* logfile;
 };
 
@@ -78,6 +84,7 @@ struct sr_ip_handle {
     unsigned int len;
     struct sr_if* iface;
 };
+
 void sr_icmp_handler(struct sr_ip_handle*);
 void sr_icmp_time_exceeded(struct sr_ip_handle*);
 void sr_ip_handler(struct sr_ip_handle*);

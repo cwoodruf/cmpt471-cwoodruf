@@ -38,6 +38,11 @@ void sr_init(struct sr_instance* sr)
     printf("ROUTER: sr_init: zero out arp table and reset refresh timer\n");
     memset(sr->arp_table,0,sizeof(sr->arp_table)); 
     time(&sr->arp_lastrefresh);
+    printf(
+        "ROUTER: preparing packet buffer (records %d, size %d bytes)\n", 
+        SR_BUFF_SIZE, sizeof(sr->buffer)
+    );
+    memset(sr->buffer,0,sizeof(sr->buffer));
 
 } /* -- sr_init -- */
 
