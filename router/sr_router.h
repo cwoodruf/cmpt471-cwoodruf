@@ -81,7 +81,7 @@ struct sr_ip_handle {
 void sr_icmp_handler(struct sr_ip_handle*);
 void sr_icmp_time_exceeded(struct sr_ip_handle*);
 void sr_ip_handler(struct sr_ip_handle*);
-
+uint16_t sr_ip_checksum(uint16_t const data[], uint16_t len);
 
 /* -- sr_main.c -- */
 int sr_verify_routing_table(struct sr_instance* sr);
