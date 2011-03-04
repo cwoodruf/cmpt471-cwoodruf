@@ -87,6 +87,7 @@ int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* in
 	assert(sr);
 	assert(ip);
 	assert(mac);
+	assert(interface);
 
 	memset((void *)entry, 0, sizeof(struct sr_arp));
         entry->ip = ip;
@@ -166,6 +167,49 @@ void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface)
 
 	/* send the packet and cross our fingers! */
 	sr_send_packet(sr, packet, sizeof(packet), interface);
+}
+/*---------------------------------------------------------------------------*/
+/**
+ * recycle an arp request packet as a response
+ */
+void sr_arp_request_response(
+	struct sr_instance* sr,
+	uint8_t* packet,
+	unsigned int len,
+	struct sr_if* iface
+) {
+	struct sr_ethernet_hdr* e_hdr = 0;
+	struct sr_arphdr*       a_hdr = 0;
+	uint32_t                tmp_ip;
+
+	assert(sr);
+	assert(packet);
+	assert(len);
+	assert(iface->ip);
+
+	e_hdr = (struct sr_ethernet_hdr*)packet;
+	a_hdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
+
+	/* check to see if the packet is for us */
+	if (iface->ip != a_hdr->ar_tip) {
+		printf("ARP: Arp request is not for us - aborting!");
+		return;
+	}
+
+	/* recycle the packet as a response */
+	memcpy(e_hdr->ether_dhost, e_hdr->ether_shost, ETHER_ADDR_LEN);
+	memcpy(e_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
+	a_hdr->ar_op = htons(ARP_REPLY);
+
+	/* basically swap but add our ethernet address instead of the broadcast */
+	memcpy(a_hdr->ar_tha, a_hdr->ar_sha, ETHER_ADDR_LEN);
+	memcpy(a_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
+
+	/* swap IPs as well of course */
+	tmp_ip = a_hdr->ar_sip;
+	a_hdr->ar_sip = a_hdr->ar_tip; 
+	a_hdr->ar_tip = tmp_ip; 
+	sr_send_packet(sr, (uint8_t*)packet, len, iface->name);
 }
 /*---------------------------------------------------------------------------*/
 /**

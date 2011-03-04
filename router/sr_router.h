@@ -15,6 +15,7 @@
 
 #include "sr_protocol.h"
 #include "sr_arp.h"
+#include "sr_ip.h"
 
 /* we dont like this debug , but what to do for varargs ? */
 #ifdef _DEBUG_
@@ -64,7 +65,22 @@ void sr_arp_print_table(struct sr_instance* sr);
 void sr_arp_print_entry(int i, struct sr_arp entry);
 unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip);
 void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface);
+void sr_arp_request_response(
+	struct sr_instance* sr, uint8_t* packet, unsigned int len, struct sr_if* iface);
 void sr_arp_scan(struct sr_instance* sr);
+
+/* -- sr_ip.c -- */
+struct sr_ip_handle {
+    struct sr_instance* sr;
+    struct sr_ethernet_hdr* e_hdr;
+    struct ip* ip_hdr;
+    uint8_t* packet;
+    unsigned int len;
+    struct sr_if* iface;
+};
+void sr_icmp_handler(struct sr_ip_handle*);
+void sr_icmp_time_exceeded(struct sr_ip_handle*);
+void sr_ip_handler(struct sr_ip_handle*);
 
 
 /* -- sr_main.c -- */
