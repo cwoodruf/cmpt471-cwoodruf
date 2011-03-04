@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 
 
 #include "sr_if.h"
@@ -34,8 +35,9 @@ void sr_init(struct sr_instance* sr)
     /* REQUIRES */
     assert(sr);
 
-    printf("sr_init: zero out arp table\n");
+    printf("ROUTER: sr_init: zero out arp table and reset refresh timer\n");
     memset(sr->arp_table,0,sizeof(sr->arp_table)); 
+    time(&sr->arp_lastrefresh);
 
 } /* -- sr_init -- */
 
@@ -66,7 +68,6 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_ethernet_hdr* e_hdr = 0;
     struct sr_arphdr*       a_hdr = 0;
     uint32_t                tmp_ip;
-    struct in_addr          pr_ip;
 
     /* REQUIRES */
     assert(sr);
@@ -75,12 +76,12 @@ void sr_handlepacket(struct sr_instance* sr,
 
     e_hdr = (struct sr_ethernet_hdr*)packet;
 
-    printf("Ethernet destination MAC: %lx ", (long unsigned int) e_hdr->ether_dhost); DebugMAC(e_hdr->ether_dhost); 
+    printf("ROUTER: Ethernet destination MAC: "); DebugMAC(e_hdr->ether_dhost); 
     printf(" ethernet source MAC: "); DebugMAC(e_hdr->ether_shost); printf("\n");
 
     switch (ntohs(e_hdr->ether_type)) {
     case ETHERTYPE_IP:
-        printf("IP packet\n");
+        printf("ROUTER: IP packet\n");
     break;
     case ETHERTYPE_ARP:
         a_hdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
@@ -89,7 +90,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
         switch (ntohs(a_hdr->ar_op)) {
         case ARP_REQUEST: 
-            printf("ARP request - sending ARP reply\n");
+            printf("ROUTER: ARP request - sending ARP reply\n");
             a_hdr->ar_op = htons(ARP_REPLY);
             /* basically swap but add our ethernet address instead of the broadcast */
     	    memcpy(a_hdr->ar_tha, a_hdr->ar_sha, ETHER_ADDR_LEN);
@@ -101,32 +102,24 @@ void sr_handlepacket(struct sr_instance* sr,
             sr_send_packet(sr, (uint8_t*)packet, len, interface);
         break;
         case ARP_REPLY:
-            printf("ARP reply - update ARP table\n");
-	    pr_ip.s_addr = a_hdr->ar_sip;
-	    printf(
-		"set index %d with ip %s and MAC ", 
-		sr_arp_set(sr, a_hdr->ar_sip, a_hdr->ar_sha, interface),
-		inet_ntoa(pr_ip)
-	    );
-	    DebugMAC(a_hdr->ar_sha);
-	    printf("\n");
+            printf("ROUTER: ARP reply - update ARP table\n");
+	    sr_arp_set(sr, a_hdr->ar_sip, a_hdr->ar_sha, interface);
         break;
         default:
-            printf("ARP ERROR: don't know what %d is!\n", a_hdr->ar_op);
+            printf("ROUTER: ARP ERROR: don't know what %d is!\n", a_hdr->ar_op);
         }
-        printf("Ethernet destination: ");
+        printf("ROUTER: Ethernet destination: ");
         DebugMAC(e_hdr->ether_dhost);
         printf(" ethernet source MAC: ");
         DebugMAC(e_hdr->ether_shost);
-        printf("\n");
-        printf(" arp packet: sender ");
+        printf("\nROUTER: arp packet: sender ");
         DebugMAC(a_hdr->ar_tha);
         printf(" target ");
         DebugMAC(a_hdr->ar_sha);
         printf("\n");
     break;
     default:
-        printf("ERROR: don't know what %d ethernet packet type is!\n", e_hdr->ether_type);
+        printf("ROUTER: ERROR: don't know what %d ethernet packet type is!\n", e_hdr->ether_type);
     }
 
 }/* end sr_ForwardPacket */

@@ -347,7 +347,6 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
             }
             bytes_read += ret;
         } while ( errno == EINTR); /* be mindful of signals */
-
     }
 
     len = ntohl(len);

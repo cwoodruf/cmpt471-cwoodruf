@@ -18,16 +18,16 @@ struct sr_arp {
 	time_t created;
 };
 
-/** instead of having clunky linked lists use an array that is probably large enough for most LANs */
-#define LAN_SIZE 256
-
 /** mask for arp table hash function */
 #define ARP_MASK 0xFF
 
-/** broadcast address for arp requests */
-#define ARP_BROADCAST 0xFFFFFFFFFFFF
+/** instead of having clunky linked lists use an array that is probably large enough for most LANs */
+#define LAN_SIZE (ARP_MASK+1)
+
 /** seconds arp entry is allowed to be valid: normally this is 10 min to 4 hours depending on system */
-#define ARP_TTL 60
+#define ARP_TTL 600
+/** seconds to wait between arp checks */
+#define ARP_CHECK_EVERY 10
 
 #endif
 

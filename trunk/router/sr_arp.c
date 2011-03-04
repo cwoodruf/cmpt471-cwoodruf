@@ -1,5 +1,21 @@
 /**
  * by Cal Woodruff <cwoodruf@sfu.ca>
+ *
+ * Defines the arp table for the router using a very simple hash table based on ip.
+ *
+ * Since we are never going to make a router that will 
+ * work with an infinite lan we can use a reasonably sized array
+ * to store the lan information.
+ *
+ * In our case we use an array slightly bigger than the provisioned 
+ * number of ip addresses for the subnet we are on. See LAN_SIZE in sr_arp.h.
+ *
+ * Accessing the array is done via a hash function. Given that the first 3
+ * octets of the ip addresses on the lan are all the same this can be simply:
+ *
+ * ip & LAN_SIZE - 1
+ *
+ * for a lan of LAN_SIZE
  */
 #include <assert.h>
 #include <arpa/inet.h>
@@ -8,6 +24,42 @@
 #include "sr_rt.h"
 #include "sr_router.h"
 #include "sr_protocol.h"
+/*---------------------------------------------------------------------------*/
+/**
+ * check if we need to spam the LAN with arp broadcasts
+ */
+void sr_arp_check_refresh(struct sr_instance* sr) 
+{
+	time_t t, age, refreshage;
+	int i;
+	struct sr_arp* entry;
+
+	assert(sr);
+
+	refreshage = time(&t) - sr->arp_lastrefresh;
+	printf("ARP: running check refresh refresh age: %lds\n", refreshage);
+
+	if (refreshage >= ARP_CHECK_EVERY) {
+		for (i=0; i<LAN_SIZE; i++) {
+			entry = &sr->arp_table[i];
+			if (!entry->ip) continue;
+
+			age = t - entry->created;
+			printf("ARP: Entry %i aged %lds (ttl %ds)\n", i, age, ARP_TTL);
+			if (age <= ARP_TTL) continue;
+
+			printf("ARP: Updating ");
+			sr_arp_print_entry(i,*entry);
+
+			sr_arp_refresh(
+				sr,
+				entry->ip,
+				entry->interface
+			);
+		}
+		sr->arp_lastrefresh = t;
+	}
+}
 /*---------------------------------------------------------------------------*/
 /** 
     use a hash to index into the arp table 
@@ -29,7 +81,6 @@ int sr_arp_get_index(uint32_t ip)
 */
 int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface) 
 {
-
 	int index = sr_arp_get_index(ip);
 	struct sr_arp* entry = &sr->arp_table[ index ];
 
@@ -46,6 +97,10 @@ int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* in
 	);
 	strncpy(entry->interface, interface, sr_IFACE_NAMELEN);
 	time(&entry->created);
+
+	printf("ARP: Created entry %d\n",index);
+	sr_arp_print_table(sr);
+
 	return index;
 }
 /*---------------------------------------------------------------------------*/
@@ -55,17 +110,12 @@ int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* in
 */
 unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip) 
 {
-
 	int index = sr_arp_get_index(ip);
-	time_t t;
 
 	assert(sr);
 	assert(ip);
 	assert(sr->arp_table[ index ].ip = ip);
-
-	if (sr->arp_table[ index ].created - time(&t) > ARP_TTL) {
-		sr_arp_refresh(sr, ip, sr->arp_table[ index ].interface);
-	}
+	
 	return sr->arp_table[ index ].mac;
 }
 /*---------------------------------------------------------------------------*/
@@ -77,8 +127,8 @@ void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface)
 	
 	int i;
 	uint8_t packet[
-			sizeof(struct sr_ethernet_hdr) + 
-			sizeof(struct sr_arphdr)
+		sizeof(struct sr_ethernet_hdr) + 
+		sizeof(struct sr_arphdr)
 	];
 	struct sr_ethernet_hdr* e_hdr = 
 			(struct sr_ethernet_hdr*)packet;
@@ -90,7 +140,11 @@ void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface)
 	assert(sr);
 	assert(ip);
 	assert(interface);
-	assert(iface);
+	if (!iface) {
+		printf("ARP: sr_arp_refresh: interface %s not found: aborting\n", interface); 
+		return;
+	}
+
 	/* ethernet header for broadcast */
 	memset((void *)packet, 0, sizeof(packet));
 	for (i=0; i<ETHER_ADDR_LEN; i++) {
@@ -104,7 +158,7 @@ void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface)
 	a_hdr->ar_pro = htons(ETHERTYPE_IP);
 	a_hdr->ar_hln = ETHER_ADDR_LEN;
 	a_hdr->ar_pln = sizeof(uint32_t);
-	a_hdr->ar_op = ARP_REQUEST;
+	a_hdr->ar_op = htons(ARP_REQUEST);
 	memcpy(a_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
 	a_hdr->ar_sip = iface->ip;
 	memcpy(a_hdr->ar_tha, sr_arp_get(sr,ip), ETHER_ADDR_LEN);
@@ -129,7 +183,7 @@ void sr_arp_scan(struct sr_instance* sr)
     assert(sr);
     if(sr->routing_table == 0)
     {
-        printf(" *warning* Routing table empty \n");
+        printf("ARP: *warning* Routing table empty \n");
         return;
     }
 
@@ -143,4 +197,32 @@ void sr_arp_scan(struct sr_instance* sr)
     }
 
 } 
+/*---------------------------------------------------------------------------*/
+/** 
+ * scan the arp array and print any entries you find
+ */
+void sr_arp_print_table(struct sr_instance* sr) 
+{
+	int i;
+	printf("ARP: Current arp entries out of a total of %d:\n",LAN_SIZE);
+	for (i=0; i<LAN_SIZE; i++) {
+		if (sr->arp_table[i].ip) sr_arp_print_entry(i,sr->arp_table[i]);
+	}
+	printf("ARP: End of arp table.\n");
+}
+/*---------------------------------------------------------------------------*/
+/**
+ * format and print an arp entry
+ */
+void sr_arp_print_entry(int i, struct sr_arp entry) 
+{
+	time_t t, ttl;
+	struct in_addr pr_ip;
 
+	pr_ip.s_addr = entry.ip;
+	ttl = entry.created - time(&t);
+
+	printf("ARP: table entry %d ip %s ttl %ld created %ld ",i, inet_ntoa(pr_ip), ttl, entry.created);
+	DebugMAC(entry.mac);
+	printf("\n");
+}

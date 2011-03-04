@@ -51,13 +51,17 @@ struct sr_instance
     struct sockaddr_in sr_addr; /* address to server */
     struct sr_if* if_list; /* list of interfaces */
     struct sr_rt* routing_table; /* routing table */
-    struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.*  */
+    time_t arp_lastrefresh; /** last time we ran sr_arp_check_refresh in sr_arp.c */
+    struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.h  */
     FILE* logfile;
 };
 
 /* -- sr_arp.c -- */
+void sr_arp_check_refresh(struct sr_instance* sr);
 int sr_arp_get_index(uint32_t ip);
 int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface);
+void sr_arp_print_table(struct sr_instance* sr);
+void sr_arp_print_entry(int i, struct sr_arp entry);
 unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip);
 void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface);
 void sr_arp_scan(struct sr_instance* sr);
