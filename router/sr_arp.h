@@ -15,6 +15,7 @@ struct sr_arp {
 	uint32_t ip;
 	unsigned char mac[ETHER_ADDR_LEN];
 	char interface[sr_IFACE_NAMELEN];
+	uint8_t tries;
 	time_t created;
 };
 
