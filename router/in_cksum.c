@@ -36,14 +36,20 @@
  *
  *	@(#)in_cksum.c	8.1 (Berkeley) 6/10/93
  */
-
+/**
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-#include <glib.h>
+#include <glib.h> 
+*/
 
-#include <epan/in_cksum.h>
+#include "in_cksum.h"
+typedef struct {
+	void* ptr;
+	unsigned short len;
+} vec_one;
+typedef vec_one[10] vec_t;
 
 /*
  * Checksum routine for Internet Protocol family headers (Portable Version).
