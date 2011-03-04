@@ -40,6 +40,7 @@ extern char* optarg;
 
 #define VERSION_INFO "VNS sr stub code revised 2010-01-21 (rev 0.23)"
 #define DEFAULT_AUTH_KEY_FILE "auth_key"
+#define DEFAULT_USER "cwoodruf"
 #define DEFAULT_PORT 3250
 #define DEFAULT_HOST "vrhost"
 /* #define DEFAULT_SERVER "171.67.71.18" */
@@ -164,7 +165,9 @@ int main(int argc, char **argv)
     sr_init(&sr);
 
     /* -- whizbang main loop ;-) */
-    while( sr_read_from_server(&sr) == 1);
+    while( sr_read_from_server(&sr) == 1) { 
+	sr_arp_check_refresh(&sr); 
+    }
 
     sr_destroy_instance(&sr);
 
@@ -183,8 +186,13 @@ static void usage(char* argv0)
     printf("           [-T template_name] [-u username] [-a auth_key_filename]\n");
     printf("           [-t topo id] [-r routing table] \n");
     printf("           [-l log file] \n");
-    printf("   defaults server=%s port=%d host=%s  \n",
-            DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST );
+#ifdef DEFAULT_USER
+    printf("   defaults server=%s port=%d host=%s topo=%d user=%s\n",
+            DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST, DEFAULT_TOPO, DEFAULT_USER );
+#else
+    printf("   defaults server=%s port=%d host=%s topo=%d \n",
+            DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST, DEFAULT_TOPO );
+#endif
 } /* -- usage -- */
 
 /*-----------------------------------------------------------------------------
@@ -194,6 +202,10 @@ static void usage(char* argv0)
 
 void sr_set_user(struct sr_instance* sr)
 {
+#ifdef DEFAULT_USER
+    assert(sr);
+    strncpy(sr->user, DEFAULT_USER, 32);
+#else
     uid_t uid = getuid();
     struct passwd* pw = 0;
 
@@ -209,6 +221,7 @@ void sr_set_user(struct sr_instance* sr)
     {
         strncpy(sr->user, pw->pw_name, 32);
     }
+#endif
 
 } /* -- sr_set_user -- */
 
