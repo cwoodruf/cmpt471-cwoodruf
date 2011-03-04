@@ -51,6 +51,7 @@ void sr_arp_check_refresh(struct sr_instance* sr)
 			printf("ARP: Updating ");
 			sr_arp_print_entry(i,*entry);
 
+			entry->tries++;
 			sr_arp_refresh(
 				sr,
 				entry->ip,
@@ -97,6 +98,7 @@ int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* in
 		ETHER_ADDR_LEN
 	);
 	strncpy(entry->interface, interface, sr_IFACE_NAMELEN);
+	entry->tries = 0;
 	time(&entry->created);
 
 	printf("ARP: Created entry %d\n",index);
@@ -125,7 +127,6 @@ unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip)
 */
 void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface) 
 {
-	
 	int i;
 	uint8_t packet[
 		sizeof(struct sr_ethernet_hdr) + 
@@ -266,7 +267,8 @@ void sr_arp_print_entry(int i, struct sr_arp entry)
 	pr_ip.s_addr = entry.ip;
 	age = time(&t) - entry.created;
 
-	printf("ARP: table entry %d ip %s age %ld created %ld ",i, inet_ntoa(pr_ip), age, entry.created);
+	printf("ARP: table entry %d ip %s mac ", i, inet_ntoa(pr_ip));
 	DebugMAC(entry.mac);
+	printf(" tries %d age %lds created %s ", entry.tries, age, ctime(&entry.created));
 	printf("\n");
 }
