@@ -15,4 +15,12 @@ struct sr_icmp {
 	unsigned char* data;
 };
 
+/** both udp and tcp use this pseudoheader to computer checksums; reserved = 0 always */
+struct sr_pseudoheader {
+	uint32_t src_ip, dest_ip;
+	uint8_t reserved;
+	uint8_t proto;
+	uint16_t len;
+};
+	
 #endif
