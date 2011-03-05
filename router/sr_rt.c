@@ -23,6 +23,57 @@
 #include "sr_router.h"
 
 /*--------------------------------------------------------------------- 
+ * Method: sr_rt_find
+ *
+ * author Cal Woodruff <cwoodruf@sfu.ca>
+ *
+ * find the correct routing table entry for the ip address
+ * this is painful as we have to scan the whole table every time
+ *
+ * returns address of rt entry
+ *---------------------------------------------------------------------*/
+struct sr_rt* sr_rt_find(struct sr_instance* sr, uint32_t ip) 
+{
+        struct sr_rt* walker,* elsewhere,* bestmatch;
+        uint32_t hip = ntohl(ip);
+        uint32_t prefix, bestprefix;
+
+        assert(sr);
+        assert(ip);
+
+        walker = sr->routing_table;
+        assert(walker);
+
+        prefix = bestprefix = 0;
+
+        if (walker->dest.s_addr == 0) {
+                elsewhere = walker;
+        } else if (
+		(prefix = (walker->dest.s_addr & walker->mask.s_addr)) == 
+			(hip & walker->mask.s_addr)
+	) {
+                bestmatch = walker;
+                bestprefix = prefix;
+        }
+
+        while (walker->next) {
+                walker = walker->next;
+                if (walker->dest.s_addr == 0) {
+                        elsewhere = walker;
+                } else if (
+			(prefix = (walker->dest.s_addr & walker->mask.s_addr)) == 
+				(hip & walker->mask.s_addr)
+		) {
+                        if (bestprefix == 0 || prefix > bestprefix) {
+                                bestprefix = prefix;
+                                bestmatch = walker;
+                        }
+                }
+        }
+        if (bestprefix == 0) return elsewhere;
+        return bestmatch;
+}
+/*--------------------------------------------------------------------- 
  * Method:
  *
  *---------------------------------------------------------------------*/

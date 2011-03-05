@@ -15,6 +15,7 @@
 #define VNSHWINFO    16
 
 #define IDSIZE 32
+#define VNSCMDSIZE   10000
 
 /*-----------------------------------------------------------------------------
                                  BASE

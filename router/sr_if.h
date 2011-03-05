@@ -25,6 +25,7 @@
 #endif
 
 #define sr_IFACE_NAMELEN 32
+#include "vnscommand.h"
 #include "sr_protocol.h"
 
 struct sr_instance;
@@ -36,12 +37,24 @@ struct sr_instance;
  *
  * -------------------------------------------------------------------------- */
 
+/** deliberately allocate all the buffers we need up front */
+#define SR_BUFF_SIZE 256
+struct sr_packet {
+	uint8_t data[VNSCMDSIZE];
+	uint8_t arp_entry;
+	time_t  created;
+};
+
 struct sr_if
 {
     char name[sr_IFACE_NAMELEN];
     unsigned char addr[ETHER_ADDR_LEN];
     uint32_t ip;
     uint32_t speed;
+    /** store the queue of unsent packets with the interface */
+    struct sr_packet sendqueue[SR_BUFF_SIZE];
+    /** which packet to send next in sendqueue */
+    uint16_t sendnext;
     struct sr_if* next;
 };
 
