@@ -73,15 +73,8 @@ void sr_arp_scan(struct sr_instance* sr);
  */
 struct sr_ip_handle {
     struct sr_instance*         sr;
-    struct sr_ethernet_hdr*     eth;
-    struct ip*                  ip;
-    struct sr_icmp_unreachable* icmp_unreachable;
-    struct sr_icmp_echo_reply*  icmp_echo_reply;
-    struct sr_icmp_timeout*     icmp_timeout;
-    uint8_t*                    icmp_data;
-    struct sr_udp*              udp;
-    struct sr_tcp*              tcp;
-    uint8_t*                    packet;
+    uint8_t*                    raw;
+    struct sr_ip_packet*        pkt;
     unsigned int                len;
     struct sr_if*               iface;
 };

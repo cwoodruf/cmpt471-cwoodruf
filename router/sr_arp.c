@@ -37,7 +37,7 @@ void sr_arp_check_refresh(struct sr_instance* sr)
 	assert(sr);
 
 	refreshage = time(&t) - sr->arp_lastrefresh;
-	printf("ARP: running check refresh refresh age: %lds\n", refreshage);
+	/* printf("ARP: running check refresh refresh age: %lds\n", refreshage); */
 
 	if (refreshage >= ARP_CHECK_EVERY) {
 		for (i=0; i<LAN_SIZE; i++) {
@@ -102,7 +102,7 @@ int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* in
 	time(&entry->created);
 
 	printf("ARP: Created entry %d\n",index);
-	sr_arp_print_table(sr);
+	/* sr_arp_print_table(sr); */
 
 	return index;
 }

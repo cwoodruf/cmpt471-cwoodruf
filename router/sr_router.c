@@ -94,18 +94,8 @@ return;
 
         memset(&ip_handler,0,sizeof(struct sr_ip_handle));
         ip_handler.sr = sr;
-        ip_handler.eth = e_hdr;
-        ip_handler.ip = ip_hdr = (struct ip*)
-		(packet + sizeof(struct sr_ethernet_hdr));
-	ip_handler.udp = (struct sr_udp*)
-		(packet + sizeof(struct sr_ethernet_hdr) + sizeof(struct ip));
-	ip_handler.tcp = (struct sr_tcp*)
-		(packet + sizeof(struct sr_ethernet_hdr) + sizeof(struct ip));
-	ip_handler.icmp = (struct sr_icmp*)
-		(packet + sizeof(struct sr_ethernet_hdr) + sizeof(struct ip));
-	ip_handler.icmp_data = (uint8_t*)
-		(packet + sizeof(struct sr_ethernet_hdr) + sizeof(struct ip) + sizeof(struct sr_icmp));
-        ip_handler.packet = packet;
+        ip_handler.raw = packet;
+	ip_handler.pkt = (struct sr_ip_packet*) packet;
         ip_handler.len = len;
         ip_handler.iface = iface;
 
@@ -128,8 +118,6 @@ return;
 break; /* not implemented yet */
 	}
 
-printf("ROUTER: ip len %X, udp len %X\n", 
-	ntohs(ip_handler.ip->ip_len), ntohs(ip_handler.udp->len));
 	/* then try and send it */
 	sr_router_send(&ip_handler);
 
@@ -169,10 +157,10 @@ void sr_router_send(struct sr_ip_handle* h)
 	struct sr_rt*   sender;
 
 	assert(h->sr);
-	assert(h->ip->ip_src.s_addr);
+	assert(h->pkt->ip.ip_src.s_addr);
 
 	/* check if we can send on this interface */
-	sender = sr_rt_find( h->sr, h->ip->ip_src.s_addr );
+	sender = sr_rt_find(h->sr, h->pkt->ip.ip_src.s_addr );
 
 	arp_entry = sr_arp_get(h->sr, sender->gw.s_addr);
 
@@ -181,7 +169,8 @@ void sr_router_send(struct sr_ip_handle* h)
 			sender->interface, arp_entry->tries);
 		return;
 	}
-	printf("ROUTER: attempting to send packet on interface %s\n", sender->interface);
-	sr_send_packet(h->sr, h->packet, h->len, sender->interface);
+	printf("ROUTER: attempting to send packet (size %d bytes) on interface %s\n", 
+		h->len, sender->interface);
+	sr_send_packet(h->sr, h->raw, h->len, sender->interface);
 }
 
