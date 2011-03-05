@@ -9,7 +9,6 @@
 #include "sr_protocol.h"
 #include "sr_if.h"
 
-
 /** data structure for an arp entry */
 struct sr_arp {
 	uint32_t ip;

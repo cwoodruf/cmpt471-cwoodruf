@@ -68,7 +68,7 @@ void sr_arp_check_refresh(struct sr_instance* sr)
     so if index into 256 entries or 171.67.245.96/24 
     we should not get collisions with this trivial hashing function
 */
-int sr_arp_get_index(uint32_t ip) 
+uint8_t sr_arp_get_index(uint32_t ip) 
 {
 	assert(ip);
 	return ARP_MASK & ntohl(ip);
@@ -80,7 +80,7 @@ int sr_arp_get_index(uint32_t ip)
     refresh the arp entry
     @return the index into the arp entry
 */
-int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface) 
+struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface) 
 {
 	int index = sr_arp_get_index(ip);
 	struct sr_arp* entry = &sr->arp_table[ index ];
@@ -104,7 +104,7 @@ int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* in
 	printf("ARP: Created entry %d\n",index);
 	/* sr_arp_print_table(sr); */
 
-	return index;
+	return entry;
 }
 /*---------------------------------------------------------------------------*/
 /**

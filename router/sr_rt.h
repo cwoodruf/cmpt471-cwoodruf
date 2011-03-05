@@ -32,6 +32,7 @@ struct sr_rt
     struct in_addr dest;
     struct in_addr gw;
     struct in_addr mask;
+    uint8_t ifidx;
     char   interface[sr_IFACE_NAMELEN];
     struct sr_rt* next;
 };
