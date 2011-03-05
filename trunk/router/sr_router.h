@@ -50,6 +50,8 @@ struct sr_instance
     unsigned short topo_id;
     struct sockaddr_in sr_addr; /* address to server */
     struct sr_if* if_list; /* list of interfaces */
+    struct sr_if* interfaces[LAN_SIZE]; /** find interfaces by last digit of name */
+    struct sr_if* ip2iface[LAN_SIZE]; /** find interfaces by last octet of ip address */
     struct sr_rt* routing_table; /* routing table */
     time_t arp_lastrefresh; /** last time we ran sr_arp_check_refresh in sr_arp.c */
     struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.h  */
@@ -57,16 +59,18 @@ struct sr_instance
 };
 
 /* -- sr_arp.c -- */
-void sr_arp_check_refresh(struct sr_instance* sr);
-int sr_arp_get_index(uint32_t ip);
-int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface);
-void sr_arp_print_table(struct sr_instance* sr);
-void sr_arp_print_entry(int i, struct sr_arp entry);
+uint8_t sr_arp_get_index(uint32_t ip);
+struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface);
 struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip);
+
+void sr_arp_scan(struct sr_instance* sr);
+void sr_arp_check_refresh(struct sr_instance* sr);
 void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface);
 void sr_arp_request_response(
 	struct sr_instance* sr, uint8_t* packet, unsigned int len, struct sr_if* iface);
-void sr_arp_scan(struct sr_instance* sr);
+
+void sr_arp_print_table(struct sr_instance* sr);
+void sr_arp_print_entry(int i, struct sr_arp entry);
 
 /**
  * data structure to pass into the sr_ip.c functions
@@ -100,6 +104,8 @@ void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
 void sr_router_send(struct sr_ip_handle*);
 
 /* -- sr_if.c -- */
+int sr_if_name2idx(const char* name);
+struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip);
 void sr_add_interface(struct sr_instance* , const char* );
 void sr_set_ether_ip(struct sr_instance* , uint32_t );
 void sr_set_ether_addr(struct sr_instance* , const unsigned char* );

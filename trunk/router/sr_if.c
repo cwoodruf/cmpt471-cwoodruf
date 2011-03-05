@@ -25,6 +25,21 @@
 #include "sr_if.h"
 #include "sr_router.h"
 
+/**
+ * get an index into the routing array based on the last character of the name 
+ * this is crude and slow so we should save these indices in the routing table
+ */
+int sr_if_name2idx(const char* name) {
+	int i = strlen(name) - 1;
+	return (int) name[ i ] - '0';
+}
+/**
+ * find an interface from its ip address
+ */
+struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip) {
+	return sr->ip2iface[ sr_arp_get_index(ip) ];
+}
+
 /*--------------------------------------------------------------------- 
  * Method: sr_get_interface
  * Scope: Global
@@ -61,19 +76,22 @@ struct sr_if* sr_get_interface(struct sr_instance* sr, const char* name)
  * Add and interface to the router's list
  *
  *---------------------------------------------------------------------*/
-
 void sr_add_interface(struct sr_instance* sr, const char* name)
 {
     struct sr_if* if_walker = 0;
+    int i;
 
     /* -- REQUIRES -- */
     assert(name);
     assert(sr);
 
+    i = sr_if_name2idx(name);
+    assert(i >= 0);
+
     /* -- empty list special case -- */
     if(sr->if_list == 0)
     {
-        sr->if_list = (struct sr_if*)malloc(sizeof(struct sr_if));
+        sr->interfaces[i] = sr->if_list = (struct sr_if*)malloc(sizeof(struct sr_if));
         assert(sr->if_list);
         sr->if_list->next = 0;
         strncpy(sr->if_list->name,name,sr_IFACE_NAMELEN);
@@ -84,8 +102,9 @@ void sr_add_interface(struct sr_instance* sr, const char* name)
     if_walker = sr->if_list;
     while(if_walker->next)
     {if_walker = if_walker->next; }
+    
+    sr->interfaces[ i ] = if_walker->next = (struct sr_if*)malloc(sizeof(struct sr_if));
 
-    if_walker->next = (struct sr_if*)malloc(sizeof(struct sr_if));
     assert(if_walker->next);
     if_walker = if_walker->next;
     strncpy(if_walker->name,name,sr_IFACE_NAMELEN);
@@ -137,6 +156,9 @@ void sr_set_ether_ip(struct sr_instance* sr, uint32_t ip_nbo)
 
     /* -- copy address -- */
     if_walker->ip = ip_nbo;
+
+    /** tie the ip to the interface record directly so we don't have to search */
+    sr->ip2iface[ sr_arp_get_index(ip_nbo) ] = if_walker;
 
 } /* -- sr_set_ether_ip -- */
 

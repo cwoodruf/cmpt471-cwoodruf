@@ -153,6 +153,7 @@ void sr_add_rt_entry(struct sr_instance* sr, struct in_addr dest,
         sr->routing_table->dest = dest;
         sr->routing_table->gw   = gw;
         sr->routing_table->mask = mask;
+	sr->routing_table->ifidx = sr_if_name2idx(if_name);
         strncpy(sr->routing_table->interface,if_name,sr_IFACE_NAMELEN);
 
         return;

@@ -25,8 +25,11 @@
 #endif
 
 #define sr_IFACE_NAMELEN 32
+#define IFACE_MAX 256
+
 #include "vnscommand.h"
 #include "sr_protocol.h"
+#include "sr_ip.h"
 
 struct sr_instance;
 
@@ -40,7 +43,7 @@ struct sr_instance;
 /** deliberately allocate all the buffers we need up front */
 #define SR_BUFF_SIZE 256
 struct sr_packet {
-	uint8_t data[VNSCMDSIZE];
+	struct sr_ip_packet pkt;
 	uint8_t arp_entry;
 	time_t  created;
 };

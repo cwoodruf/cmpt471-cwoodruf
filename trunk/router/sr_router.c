@@ -38,6 +38,9 @@ void sr_init(struct sr_instance* sr)
     printf("ROUTER: sr_init: zero out arp table and reset refresh timer\n");
     memset(sr->arp_table,0,sizeof(sr->arp_table)); 
     time(&sr->arp_lastrefresh);
+    printf("ROUTER: sr_init: zero out ip2iface table\n");
+    memset(sr->ip2iface,0,sizeof(sr->ip2iface)); 
+    memset(sr->interfaces,0,sizeof(sr->interfaces)); 
 
 } /* -- sr_init -- */
 
