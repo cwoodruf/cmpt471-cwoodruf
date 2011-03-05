@@ -42,7 +42,6 @@
 #include "sr_protocol.h"
 
 #include "sha1.h"
-#include "vnscommand.h"
 
 /* static void sr_log_packet(struct sr_instance* , uint8_t* , int ); */
 static int  sr_arp_req_not_for_us(struct sr_instance* sr,
@@ -210,8 +209,12 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
 
     printf("Router interfaces:\n");
     sr_print_if_list(sr);
-    printf("Sending arp broadcasts\n");
+
+    /** see sr_arp.c - cal */
+    printf("VNS_COMM: Sending arp broadcasts on each interface\n");
     sr_arp_scan(sr);
+    /** end sr_arp.c code */
+
     return num_entries;
 } /* -- sr_handle_hwinfo -- */
 
@@ -351,7 +354,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
 
     len = ntohl(len);
 
-    if ( len > 10000 || len < 0 )
+    if ( len > VNSCMDSIZE || len < 0 )
     {
         fprintf(stderr,"Error: command length to large %d\n",len);
         close(sr->sockfd);

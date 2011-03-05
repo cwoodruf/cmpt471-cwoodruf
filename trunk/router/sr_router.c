@@ -38,11 +38,6 @@ void sr_init(struct sr_instance* sr)
     printf("ROUTER: sr_init: zero out arp table and reset refresh timer\n");
     memset(sr->arp_table,0,sizeof(sr->arp_table)); 
     time(&sr->arp_lastrefresh);
-    printf(
-        "ROUTER: preparing packet buffer (records %d, size %d bytes)\n", 
-        SR_BUFF_SIZE, sizeof(sr->buffer)
-    );
-    memset(sr->buffer,0,sizeof(sr->buffer));
 
 } /* -- sr_init -- */
 
@@ -74,6 +69,7 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_arphdr*       a_hdr = 0;
     struct ip*              ip_hdr = 0;
     struct sr_ip_handle     ip_handler;
+    uint16_t                checksum;
 
     /* REQUIRES */
     assert(sr);
@@ -91,29 +87,41 @@ void sr_handlepacket(struct sr_instance* sr,
         printf("ROUTER: IP packet\n");
         ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
 
+	if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, sizeof(struct ip)/2))) {
+		printf("ROUTER: IP checksum failed (got %d) - aborting\n", checksum);
+		break;
+	}
+
         memset(&ip_handler,0,sizeof(struct sr_ip_handle));
         ip_handler.sr = sr;
-        ip_handler.e_hdr = e_hdr;
-        ip_handler.ip_hdr = ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
+        ip_handler.eth = e_hdr;
+        ip_handler.ip = ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
         ip_handler.packet = packet;
         ip_handler.len = len;
         ip_handler.iface = iface;
 
+	/* transmogrify the data we are given */
+
         if (ip_hdr->ip_ttl <= 1) {
             printf("ROUTER: ttl expired!\n");
             sr_icmp_time_exceeded(&ip_handler);
+        } else {
+            switch(ip_hdr->ip_p)
+            {
+            case IPPROTO_ICMP:
+                printf("ROUTER: ICMP protocol\n");
+                sr_icmp_handler(&ip_handler);
             break;
-        }
-        switch(ip_hdr->ip_p)
-        {
-        case IPPROTO_ICMP:
-            printf("ROUTER: ICMP protocol\n");
-            sr_icmp_handler(&ip_handler);
-        break;
-        default:
-            printf("ROUTER: Other IP protocol %d\n", ip_hdr->ip_p);
-            sr_ip_handler(&ip_handler);
-        }
+            default:
+                printf("ROUTER: Other IP protocol %d\n", ip_hdr->ip_p);
+                sr_ip_handler(&ip_handler);
+            }
+break; /* not implemented yet */
+	}
+
+	/* then try and send it */
+	sr_router_send(&ip_handler);
+
     break;
     case ETHERTYPE_ARP:
         a_hdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
@@ -135,10 +143,34 @@ void sr_handlepacket(struct sr_instance* sr,
         printf("ROUTER: ERROR: don't know what %d ethernet packet type is!\n", e_hdr->ether_type);
     }
 
-}/* end sr_ForwardPacket */
+}/* end sr_handlepacket */
 
 
 /*--------------------------------------------------------------------- 
- * Method:
+ * Method: sr_router_send
  *
+ * figure out where we are sending and do basic sanity check
+ * this is where you'd buffer packets should you not be able to send them
  *---------------------------------------------------------------------*/
+void sr_router_send(struct sr_ip_handle* h) 
+{
+	struct sr_arp*  arp_entry;
+	struct sr_rt*   sender;
+
+	assert(h->sr);
+	assert(h->ip->ip_src.s_addr);
+
+	/* check if we can send on this interface */
+	sender = sr_rt_find( h->sr, h->ip->ip_src.s_addr );
+
+	arp_entry = sr_arp_get(h->sr, sender->gw.s_addr);
+
+	if (arp_entry->tries > 5) {
+		printf("ROUTER: interface %s is disconnected (tries %d) - aborting\n", 
+			sender->interface, arp_entry->tries);
+		return;
+	}
+	printf("ROUTER: attempting to send packet on interface %s\n", sender->interface);
+	sr_send_packet(h->sr, h->packet, h->len, sender->interface);
+}
+

@@ -40,12 +40,6 @@ struct sr_rt;
  * Encapsulation of the state for a single virtual router.
  *
  * -------------------------------------------------------------------------- */
-#define SR_BUFF_SIZE 1024
-struct sr_packet {
-	uint8_t data[8192];
-	struct sr_if* iface;
-};
-
 struct sr_instance
 {
     int  sockfd;   /* socket to server */
@@ -59,7 +53,6 @@ struct sr_instance
     struct sr_rt* routing_table; /* routing table */
     time_t arp_lastrefresh; /** last time we ran sr_arp_check_refresh in sr_arp.c */
     struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.h  */
-    struct sr_packet buffer[SR_BUFF_SIZE]; /** backlog of packets: see sr_ip.* */
     FILE* logfile;
 };
 
@@ -69,22 +62,26 @@ int sr_arp_get_index(uint32_t ip);
 int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface);
 void sr_arp_print_table(struct sr_instance* sr);
 void sr_arp_print_entry(int i, struct sr_arp entry);
-unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip);
+struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip);
 void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface);
 void sr_arp_request_response(
 	struct sr_instance* sr, uint8_t* packet, unsigned int len, struct sr_if* iface);
 void sr_arp_scan(struct sr_instance* sr);
 
-/* -- sr_ip.c -- */
+/**
+ * data structure to pass into the sr_ip.c functions
+ */
 struct sr_ip_handle {
-    struct sr_instance* sr;
-    struct sr_ethernet_hdr* e_hdr;
-    struct ip* ip_hdr;
-    uint8_t* packet;
-    unsigned int len;
-    struct sr_if* iface;
+    struct sr_instance*     sr;
+    struct sr_ethernet_hdr* eth;
+    struct ip*              ip;
+    struct sr_icmp*         icmp;
+    uint8_t*                packet;
+    unsigned int            len;
+    struct sr_if*           iface;
 };
 
+/* -- sr_ip.c -- */
 void sr_icmp_handler(struct sr_ip_handle*);
 void sr_icmp_time_exceeded(struct sr_ip_handle*);
 void sr_ip_handler(struct sr_ip_handle*);
@@ -102,6 +99,7 @@ void sr_log_packet(struct sr_instance* sr, uint8_t* buf, int len );
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* );
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
+void sr_router_send(struct sr_ip_handle*);
 
 /* -- sr_if.c -- */
 void sr_add_interface(struct sr_instance* , const char* );

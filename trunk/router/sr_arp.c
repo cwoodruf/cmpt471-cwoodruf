@@ -111,7 +111,7 @@ int sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* in
     arp getter
     @return mac address
 */
-unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip) 
+struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip) 
 {
 	int index = sr_arp_get_index(ip);
 
@@ -119,7 +119,7 @@ unsigned char* sr_arp_get(struct sr_instance* sr, uint32_t ip)
 	assert(ip);
 	assert(sr->arp_table[ index ].ip = ip);
 	
-	return sr->arp_table[ index ].mac;
+	return &sr->arp_table[ index ];
 }
 /*---------------------------------------------------------------------------*/
 /**
@@ -270,5 +270,4 @@ void sr_arp_print_entry(int i, struct sr_arp entry)
 	printf("ARP: table entry %d ip %s mac ", i, inet_ntoa(pr_ip));
 	DebugMAC(entry.mac);
 	printf(" tries %d age %lds created %s ", entry.tries, age, ctime(&entry.created));
-	printf("\n");
 }
