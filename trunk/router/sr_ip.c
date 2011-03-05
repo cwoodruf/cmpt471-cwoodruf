@@ -16,9 +16,6 @@ void sr_icmp_time_exceeded(struct sr_ip_handle* h)
 	uint8_t  data[ICMP_TIMEOUT_SIZE];
 	uint32_t s_ip;
 
-	/* define where the icmp header starts in the packet */
-	h->icmp = (struct sr_icmp*) (h->ip + sizeof(h->ip));
-
 	/* get data for the time exceeded message - first 4 bytes are not used */
 	memset(data, 0, 4);
 	/* but then copy the ip header and 64 bits of the original datagram */
@@ -30,10 +27,14 @@ void sr_icmp_time_exceeded(struct sr_ip_handle* h)
 	memcpy(h->eth->ether_shost, shost, ETHER_ADDR_LEN);
 
 	/* change the protocol to ICMP and reset data in the ip header */
-	h->ip->ip_hl = htons(5);
-	h->ip->ip_p = htons(IPPROTO_ICMP);
+	/* ihl - length of header in bytes */
+	if (h->ip->ip_hl != 5) {
+		h->ip->ip_hl &= 0; /* clear nibble */
+		h->ip->ip_hl |= (1 << 2) + 1; /* make 0101 in binary */
+	}
 	h->ip->ip_off = 0;
-	h->ip->ip_ttl = htons(IP_MAX_HOPS);
+	h->ip->ip_ttl = IP_MAX_HOPS;
+	h->ip->ip_p = IPPROTO_ICMP;
 	h->ip->ip_sum = 0;
 
 	/* swap the ip addresses */
@@ -42,18 +43,19 @@ void sr_icmp_time_exceeded(struct sr_ip_handle* h)
 	h->ip->ip_src.s_addr = s_ip;
 
 	/* recalculate the length */
-	h->ip->ip_len = htons(sizeof(struct ip) + sizeof(struct sr_icmp) + ICMP_TIMEOUT_SIZE);
+	h->ip->ip_len = htons(sizeof(struct ip) + sizeof(struct sr_udp) + sizeof(struct sr_icmp) + ICMP_TIMEOUT_SIZE);
 
 	/* now that we have everything in the ip header recompute the checksum */
-	h->ip->ip_sum = htons(sr_ip_checksum((uint16_t*) h->ip, sizeof(struct ip)/2));
+	h->ip->ip_sum = sr_ip_checksum((uint16_t*) h->ip, sizeof(struct ip)/2);
 	printf(
-		"IP: time exceeded: calculated checksum %d, recalculated as %d\n", 
-		h->ip->ip_sum, 
-		sr_ip_checksum((uint16_t*) h->ip, sizeof(struct ip)/2)
+		"IP: time exceeded: calculated checksum %X, recalculated as %X length %X\n", 
+		ntohs(h->ip->ip_sum), 
+		sr_ip_checksum((uint16_t*) h->ip, sizeof(struct ip)/2),
+		ntohs(h->ip->ip_len)
 	);
 
-	/* make an ip ICMP header */
-	h->icmp->type = ICMP_TIME_EXCEEDED;
+	/* make an ip ICMP header - define where the icmp header starts in the packet */
+	h->icmp->type = htons(ICMP_TIME_EXCEEDED);
 
 	/* code 1 = fragment reassembly timed out - which we aren't implementing */
 	/* code 0 = time to live went to 0 */
@@ -64,7 +66,7 @@ void sr_icmp_time_exceeded(struct sr_ip_handle* h)
 	h->icmp->checksum = 0;
 	
 	/* add the data from the original datagram */
-	memcpy((uint8_t*) (&h->icmp + sizeof(h->icmp)), (uint8_t*) data, ICMP_TIMEOUT_SIZE);
+	memcpy((uint8_t*) h->icmp_data, (uint8_t*) data, ICMP_TIMEOUT_SIZE);
 
 	/* recalculate the size of our packet */
 	h->len = sizeof(struct sr_ethernet_hdr) + h->ip->ip_len;
