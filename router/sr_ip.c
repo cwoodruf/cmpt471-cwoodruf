@@ -54,7 +54,7 @@ void sr_icmp_time_exceeded(struct sr_ip_handle* h)
 
 	/* create the icmp packet */
 	p->d.icmp.type = ICMP_UNREACHABLE;
-	p->d.icmp.code = ICMP_PORT_UNAVAILABLE; 
+	p->d.icmp.code = ICMP_PORT_UNAVAILABLE;
 
 	/* 0 = no checksum */
 	/* icmp messages don't have to have checksums: to say you have a checksum of 0 use all 1s */
