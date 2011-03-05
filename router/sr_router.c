@@ -89,13 +89,22 @@ void sr_handlepacket(struct sr_instance* sr,
 
 	if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, sizeof(struct ip)/2))) {
 		printf("ROUTER: IP checksum failed (got %d) - aborting\n", checksum);
-		break;
+return;
 	}
 
         memset(&ip_handler,0,sizeof(struct sr_ip_handle));
         ip_handler.sr = sr;
         ip_handler.eth = e_hdr;
-        ip_handler.ip = ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
+        ip_handler.ip = ip_hdr = (struct ip*)
+		(packet + sizeof(struct sr_ethernet_hdr));
+	ip_handler.udp = (struct sr_udp*)
+		(packet + sizeof(struct sr_ethernet_hdr) + sizeof(struct ip));
+	ip_handler.tcp = (struct sr_tcp*)
+		(packet + sizeof(struct sr_ethernet_hdr) + sizeof(struct ip));
+	ip_handler.icmp = (struct sr_icmp*)
+		(packet + sizeof(struct sr_ethernet_hdr) + sizeof(struct ip));
+	ip_handler.icmp_data = (uint8_t*)
+		(packet + sizeof(struct sr_ethernet_hdr) + sizeof(struct ip) + sizeof(struct sr_icmp));
         ip_handler.packet = packet;
         ip_handler.len = len;
         ip_handler.iface = iface;
@@ -119,6 +128,8 @@ void sr_handlepacket(struct sr_instance* sr,
 break; /* not implemented yet */
 	}
 
+printf("ROUTER: ip len %X, udp len %X\n", 
+	ntohs(ip_handler.ip->ip_len), ntohs(ip_handler.udp->len));
 	/* then try and send it */
 	sr_router_send(&ip_handler);
 
