@@ -43,7 +43,7 @@ void sr_ip_reverse(struct sr_ip_packet* p, uint16_t len)
 
 	/* now that we have everything in the ip header recompute the checksum */
 	p->ip.ip_sum = sr_ip_checksum((uint16_t*) &p->ip, sizeof(struct ip)/2);
-	printf(
+	Debug(
 		"IP: calculated ip checksum %X, recalculated %X (should be 0)\n", 
 		ntohs(p->ip.ip_sum), 
 		sr_ip_checksum((uint16_t*) &p->ip, sizeof(struct ip)/2)
@@ -120,13 +120,19 @@ int sr_icmp_handler(struct sr_ip_handle* h)
 	return 0;
 }
 /**
- * what to do with other ip packets
+ * what to do with other ip packets - in this case we only decrement the ttl value
  * @return 0 means abort, non-zero means send packet
  */
 int sr_ip_handler(struct sr_ip_handle* h) 
 {
 	assert(h);
-	return 0;
+
+	/* see http://www.faqs.org/rfcs/rfc1071.html section 2.4 for why this works */
+	h->pkt->ip.ip_ttl -= 1;
+	h->pkt->ip.ip_sum -= 1;
+	h->pkt->d.tcp.checksum -= 1;
+
+	return 1;
 }
 /**
  * do a basic checksum calculation

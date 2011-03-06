@@ -69,14 +69,18 @@ int main(int argc, char **argv)
     unsigned int port = DEFAULT_PORT;
     unsigned int topo = DEFAULT_TOPO;
     char *logfile = 0;
+    int dochecksum = 1;
     struct sr_instance sr;
 
     printf("Using %s\n", VERSION_INFO);
 
-    while ((c = getopt(argc, argv, "ha:s:v:p:u:t:r:l:T:")) != EOF)
+    while ((c = getopt(argc, argv, "hCa:s:v:p:u:t:r:l:T:")) != EOF)
     {
         switch (c)
         {
+	    case 'C':
+                dochecksum = 0;
+                break;
             case 'h':
                 usage(argv[0]);
                 exit(0);
@@ -123,6 +127,7 @@ int main(int argc, char **argv)
         strncpy(sr.template, template, 30);
 
     sr.topo_id = topo;
+    sr.dochecksum = dochecksum;
     strncpy(sr.host,host,32);
     strncpy(sr.auth_key_fn,auth_key_file,64);
 
@@ -185,7 +190,7 @@ static void usage(char* argv0)
     printf("Format: %s [-h] [-v host] [-s server] [-p port] \n",argv0);
     printf("           [-T template_name] [-u username] [-a auth_key_filename]\n");
     printf("           [-t topo id] [-r routing table] \n");
-    printf("           [-l log file] \n");
+    printf("           [-l log file] [-C do NOT do ip checksum]\n");
 #ifdef DEFAULT_USER
     printf("   defaults server=%s port=%d host=%s topo=%d user=%s\n",
             DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST, DEFAULT_TOPO, DEFAULT_USER );
