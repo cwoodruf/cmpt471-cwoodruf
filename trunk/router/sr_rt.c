@@ -35,7 +35,6 @@
 struct sr_rt* sr_rt_find(struct sr_instance* sr, uint32_t ip) 
 {
         struct sr_rt* walker,* elsewhere,* bestmatch;
-        uint32_t hip = ntohl(ip);
         uint32_t prefix, bestprefix;
 
         assert(sr);
@@ -50,7 +49,7 @@ struct sr_rt* sr_rt_find(struct sr_instance* sr, uint32_t ip)
                 elsewhere = walker;
         } else if (
 		(prefix = (walker->dest.s_addr & walker->mask.s_addr)) == 
-			(hip & walker->mask.s_addr)
+			(ip & walker->mask.s_addr)
 	) {
                 bestmatch = walker;
                 bestprefix = prefix;
@@ -62,7 +61,7 @@ struct sr_rt* sr_rt_find(struct sr_instance* sr, uint32_t ip)
                         elsewhere = walker;
                 } else if (
 			(prefix = (walker->dest.s_addr & walker->mask.s_addr)) == 
-				(hip & walker->mask.s_addr)
+				(ip & walker->mask.s_addr)
 		) {
                         if (bestprefix == 0 || prefix > bestprefix) {
                                 bestprefix = prefix;
