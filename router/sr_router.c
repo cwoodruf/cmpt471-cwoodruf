@@ -38,7 +38,7 @@ void sr_init(struct sr_instance* sr)
     printf("ROUTER: sr_init: zero out arp table and reset refresh timer\n");
     memset(sr->arp_table,0,sizeof(sr->arp_table)); 
     time(&sr->arp_lastrefresh);
-    printf("ROUTER: sr_init: zero out ip2iface table\n");
+    printf("ROUTER: sr_init: zero out ip2iface and interfaces tables\n");
     memset(sr->ip2iface,0,sizeof(sr->ip2iface)); 
     memset(sr->interfaces,0,sizeof(sr->interfaces)); 
 
@@ -92,7 +92,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
 	if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, sizeof(struct ip)/2))) {
 		printf("ROUTER: IP checksum failed (got %d) - aborting\n", checksum);
-return;
+		return;
 	}
 
         memset(&ip_handler,0,sizeof(struct sr_ip_handle));
@@ -106,19 +106,18 @@ return;
 
         if (ip_hdr->ip_ttl <= 1) {
             printf("ROUTER: ttl expired!\n");
-            sr_icmp_time_exceeded(&ip_handler);
+            if (!sr_icmp_time_exceeded(&ip_handler)) return;
         } else {
             switch(ip_hdr->ip_p)
             {
             case IPPROTO_ICMP:
                 printf("ROUTER: ICMP protocol\n");
-                sr_icmp_handler(&ip_handler);
+                if (!sr_icmp_handler(&ip_handler)) return;
             break;
             default:
                 printf("ROUTER: Other IP protocol %d\n", ip_hdr->ip_p);
-                sr_ip_handler(&ip_handler);
+                if (!sr_ip_handler(&ip_handler)) return;
             }
-break; /* not implemented yet */
 	}
 
 	/* then try and send it */

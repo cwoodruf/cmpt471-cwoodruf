@@ -28,10 +28,11 @@
 /**
  * get an index into the routing array based on the last character of the name 
  * this is crude and slow so we should save these indices in the routing table
+ * for later use
  */
-int sr_if_name2idx(const char* name) {
-	int i = strlen(name) - 1;
-	return (int) name[ i ] - '0';
+uint8_t sr_if_name2idx(const char* name) {
+	unsigned int i = atoi(name+3);
+	return (uint8_t) i;
 }
 /**
  * find an interface from its ip address
@@ -173,6 +174,19 @@ void sr_set_ether_ip(struct sr_instance* sr, uint32_t ip_nbo)
 void sr_print_if_list(struct sr_instance* sr)
 {
     struct sr_if* if_walker = 0;
+    uint16_t i;
+
+    for (i=0; i<LAN_SIZE; i++) {
+        if (sr->interfaces[ i ] != NULL) {
+            printf("IF: interfaces[%d]:\n", i);
+            sr_print_if(sr->interfaces[ i ]);
+        }
+        if (sr->ip2iface[ i ] != NULL) {
+            printf("IF: ip2iface[%d]:\n", i);
+            sr_print_if(sr->ip2iface[ i ]);
+        }
+    }
+    printf("\n");
 
     if(sr->if_list == 0)
     {
