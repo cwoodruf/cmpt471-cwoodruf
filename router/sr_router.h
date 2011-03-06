@@ -88,7 +88,8 @@ struct sr_ip_handle {
 int sr_icmp_handler(struct sr_ip_handle*);
 int sr_icmp_unreachable(struct sr_ip_handle*);
 int sr_ip_handler(struct sr_ip_handle*);
-uint16_t sr_ip_checksum(uint16_t const data[], uint16_t len);
+int sr_ip_passthru(struct sr_ip_handle*);
+uint16_t sr_ip_checksum(uint16_t const data[], uint16_t len_in_bytes);
 
 /* -- sr_main.c -- */
 int sr_verify_routing_table(struct sr_instance* sr);

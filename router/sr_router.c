@@ -92,8 +92,8 @@ void sr_handlepacket(struct sr_instance* sr,
         Debug("ROUTER: IP packet (doing checksum: %s)\n",(sr->dochecksum ? "yes":"no"));
         ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
 
-	if (sr->dochecksum && (checksum = sr_ip_checksum((uint16_t*) ip_hdr, sizeof(struct ip)/2))) {
-		Debug("ROUTER: IP checksum failed (got %d) - aborting\n", checksum);
+	if (sr->dochecksum && (checksum = sr_ip_checksum((uint16_t*) ip_hdr, (ip_hdr->ip_hl*4)))) {
+		Debug("ROUTER: IP checksum failed (got %X) - aborting\n", checksum);
 		return;
 	}
 
@@ -182,12 +182,12 @@ void sr_router_send(struct sr_ip_handle* h)
 	eth = &h->pkt->eth;
 	memcpy(
 		eth->ether_shost,
-		h->sr->interfaces[ sender->ifidx ]->addr,
+		arp_entry->iface->addr,
 		ETHER_ADDR_LEN
 	);
 	memcpy(
 		eth->ether_dhost,
-		arp_entry->iface->addr,
+		arp_entry->mac,
 		ETHER_ADDR_LEN
 	);
 	Debug("ROUTER: Source IP %s (send mac ", inet_ntoa(h->pkt->ip.ip_src));

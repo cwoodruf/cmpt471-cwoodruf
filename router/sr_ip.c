@@ -42,11 +42,11 @@ void sr_ip_reverse(struct sr_ip_packet* p, uint16_t len)
 	p->ip.ip_len = htons(len);
 
 	/* now that we have everything in the ip header recompute the checksum */
-	p->ip.ip_sum = sr_ip_checksum((uint16_t*) &p->ip, sizeof(struct ip)/2);
+	p->ip.ip_sum = sr_ip_checksum((uint16_t*) &p->ip, (p->ip.ip_hl*4));
 	Debug(
 		"IP: calculated ip checksum %X, recalculated %X (should be 0)\n", 
 		ntohs(p->ip.ip_sum), 
-		sr_ip_checksum((uint16_t*) &p->ip, sizeof(struct ip)/2)
+		sr_ip_checksum((uint16_t*) &p->ip, sizeof(struct ip))
 	);
 }
 /**
@@ -82,7 +82,7 @@ int sr_icmp_unreachable(struct sr_ip_handle* h)
 	/* add the data from the original datagram */
 	memcpy(p->d.icmp.data, data, ICMP_TIMEOUT_SIZE);
 
-	p->d.icmp.checksum = sr_ip_checksum((uint16_t*) &p->d.icmp, (ICMP_TIMEOUT_SIZE+8)/2);
+	p->d.icmp.checksum = sr_ip_checksum((uint16_t*) &p->d.icmp, (ICMP_TIMEOUT_SIZE+8));
 
 	/* recalculate the size of our packet */
 	h->len = sizeof(struct sr_ethernet_hdr) + ntohs(p->ip.ip_len);
@@ -96,26 +96,31 @@ int sr_icmp_unreachable(struct sr_ip_handle* h)
 int sr_icmp_handler(struct sr_ip_handle* h) 
 {
 	struct sr_ip_packet* p;
+	struct ip* ip;
 	uint8_t type;
 	uint16_t len;
 
 	assert(h); 
 	p = h->pkt;
 	type = p->d.icmp.type;
+	ip = &h->pkt->ip;
 
 	switch(type) {
 	case ICMP_ECHO_REQUEST: 
 		printf("IP: icmp: got an echo request\n"); 
-		sr_ip_reverse(p,ntohs(p->ip.ip_len));
+		sr_ip_reverse(p,ntohs(ip->ip_len));
 		p->d.icmp.type = 0;
 		p->d.icmp.code = 0;
 		p->d.icmp.checksum = 0;
 		len = h->len - sizeof(h->pkt->eth) - sizeof(h->pkt->ip);
-		p->d.icmp.checksum = sr_ip_checksum((uint16_t*) &p->d.icmp, len/2);
+		p->d.icmp.checksum = sr_ip_checksum((uint16_t*) &p->d.icmp, len);
 		return 1;
 	break;
 	default: 
 		printf("IP: icmp: got something else %d\n", type);
+		/* if the icmp packet is going to an interface abort */
+		if (sr_if_ip2iface(h->sr, ip->ip_dst.s_addr)) return 0;
+		return sr_ip_passthru(h);
 	}
 	return 0;
 }
@@ -125,12 +130,26 @@ int sr_icmp_handler(struct sr_ip_handle* h)
  */
 int sr_ip_handler(struct sr_ip_handle* h) 
 {
+	return sr_ip_passthru(h);
+}
+/**
+ * packet is only passing through so decrement ttl and send it along
+ */
+int sr_ip_passthru(struct sr_ip_handle* h) {
+	struct ip* ip;
+
 	assert(h);
 
-	/* see http://www.faqs.org/rfcs/rfc1071.html section 2.4 for why this works */
-	h->pkt->ip.ip_ttl -= 1;
-	h->pkt->ip.ip_sum -= 1;
-	h->pkt->d.tcp.checksum -= 1;
+	ip = &h->pkt->ip;
+	ip->ip_ttl -= 0x01;
+	ip->ip_sum = 0;
+	ip->ip_sum = sr_ip_checksum((uint16_t*) ip, (ip->ip_hl*4));
+	Debug(
+		"IP: ttl is %d, recalculated ip checksum %X (checked value %X should be 0)\n", 
+		ip->ip_ttl,
+		ntohs(h->pkt->ip.ip_sum), 
+		sr_ip_checksum((uint16_t*) ip, (ip->ip_hl*4))
+	);
 
 	return 1;
 }
@@ -155,13 +174,18 @@ int sr_ip_handler(struct sr_ip_handle* h)
  * the embedded checksum in the header is set to 0
  * 
  */ 
-uint16_t sr_ip_checksum(uint16_t const data[], uint16_t words) 
+uint16_t sr_ip_checksum(uint16_t const data[], uint16_t len_in_bytes) 
 {
 	uint32_t sum = 0;
-
+	uint16_t words = len_in_bytes/2;
+	
 	/* add up each 16 bit word */
 	while(words-- > 0) {
 		sum += *(data++);
+	}
+	if (len_in_bytes % 2) {
+		Debug("IP: checksum: odd number of bytes %d, data %d after %d\n", len_in_bytes, *data, (*data << 8));
+		sum += (*data << 8);
 	}
 
 	/* squash sum back into 16 bits: compute 1s compliment with carries */
