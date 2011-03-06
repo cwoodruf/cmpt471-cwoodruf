@@ -89,10 +89,10 @@ void sr_handlepacket(struct sr_instance* sr,
     switch (ntohs(e_hdr->ether_type)) 
     {
     case ETHERTYPE_IP:
-        Debug("ROUTER: IP packet\n");
+        Debug("ROUTER: IP packet (doing checksum: %s)\n",(sr->dochecksum ? "yes":"no"));
         ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
 
-	if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, sizeof(struct ip)/2))) {
+	if (sr->dochecksum && (checksum = sr_ip_checksum((uint16_t*) ip_hdr, sizeof(struct ip)/2))) {
 		Debug("ROUTER: IP checksum failed (got %d) - aborting\n", checksum);
 		return;
 	}
@@ -119,7 +119,7 @@ void sr_handlepacket(struct sr_instance* sr,
 	    if (!sr_icmp_unreachable(&ip_handler)) return;
 
         } else {
-            Debug("ROUTER: Other IP protocol %d\n", ip_hdr->ip_p);
+            Debug("ROUTER: IP protocol %d\n", ip_hdr->ip_p);
             if (!sr_ip_handler(&ip_handler)) return;
 	}
 
@@ -137,7 +137,7 @@ void sr_handlepacket(struct sr_instance* sr,
         break;
         case ARP_REPLY:
             Debug("ROUTER: ARP reply - update ARP table\n");
-            sr_arp_set(sr, a_hdr->ar_sip, a_hdr->ar_sha, interface);
+            sr_arp_set(sr, a_hdr->ar_sip, a_hdr->ar_sha, iface);
         break;
         default:
             Debug("ROUTER: ARP ERROR: don't know what %d is!\n", a_hdr->ar_op);
@@ -160,12 +160,13 @@ void sr_router_send(struct sr_ip_handle* h)
 {
 	struct sr_arp*  arp_entry;
 	struct sr_rt*   sender;
+	struct sr_ethernet_hdr* eth;
 
 	assert(h->sr);
-	assert(h->pkt->ip.ip_src.s_addr);
+	assert(h->pkt->ip.ip_dst.s_addr);
 
 	/* check if we can send on this interface */
-	sender = sr_rt_find(h->sr, h->pkt->ip.ip_src.s_addr );
+	sender = sr_rt_find(h->sr, h->pkt->ip.ip_dst.s_addr );
 
 	arp_entry = sr_arp_get(h->sr, sender->gw.s_addr);
 
@@ -176,6 +177,24 @@ void sr_router_send(struct sr_ip_handle* h)
 	}
 	Debug("ROUTER: attempting to send packet (size %d bytes) on interface %s\n", 
 		h->len, sender->interface);
+
+	/* set the mac addresses for the ethernet transmission based on our routing and arp data */
+	eth = &h->pkt->eth;
+	memcpy(
+		eth->ether_shost,
+		h->sr->interfaces[ sender->ifidx ]->addr,
+		ETHER_ADDR_LEN
+	);
+	memcpy(
+		eth->ether_dhost,
+		arp_entry->iface->addr,
+		ETHER_ADDR_LEN
+	);
+	Debug("ROUTER: Source IP %s (send mac ", inet_ntoa(h->pkt->ip.ip_src));
+	DebugMAC(eth->ether_shost); 
+	Debug(") Destination IP %s (recv mac ", inet_ntoa(h->pkt->ip.ip_dst));
+	DebugMAC(eth->ether_dhost);
+	Debug(")\n");
 	sr_send_packet(h->sr, h->raw, h->len, sender->interface);
 }
 

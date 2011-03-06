@@ -55,12 +55,13 @@ struct sr_instance
     struct sr_rt* routing_table; /* routing table */
     time_t arp_lastrefresh; /** last time we ran sr_arp_check_refresh in sr_arp.c */
     struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.h  */
+    int dochecksum; /** use this to turn off doing ip checksums for debugging */
     FILE* logfile;
 };
 
 /* -- sr_arp.c -- */
 uint8_t sr_arp_get_index(uint32_t ip);
-struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface);
+struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface);
 struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip);
 
 void sr_arp_scan(struct sr_instance* sr);

@@ -55,7 +55,7 @@ void sr_arp_check_refresh(struct sr_instance* sr)
 			sr_arp_refresh(
 				sr,
 				entry->ip,
-				entry->interface
+				entry->iface->name
 			);
 		}
 		sr->arp_lastrefresh = t;
@@ -80,7 +80,7 @@ uint8_t sr_arp_get_index(uint32_t ip)
     refresh the arp entry
     @return the index into the arp entry
 */
-struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, char* interface) 
+struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface) 
 {
 	int index = sr_arp_get_index(ip);
 	struct sr_arp* entry = &sr->arp_table[ index ];
@@ -88,7 +88,7 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
 	assert(sr);
 	assert(ip);
 	assert(mac);
-	assert(interface);
+	assert(iface);
 
 	memset((void *)entry, 0, sizeof(struct sr_arp));
         entry->ip = ip;
@@ -97,7 +97,7 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
 		mac,
 		ETHER_ADDR_LEN
 	);
-	strncpy(entry->interface, interface, sr_IFACE_NAMELEN);
+	entry->iface = iface;
 	entry->tries = 0;
 	time(&entry->created);
 
