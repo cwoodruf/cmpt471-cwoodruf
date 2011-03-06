@@ -84,9 +84,9 @@ struct sr_ip_handle {
 };
 
 /* -- sr_ip.c -- */
-void sr_icmp_handler(struct sr_ip_handle*);
-void sr_icmp_time_exceeded(struct sr_ip_handle*);
-void sr_ip_handler(struct sr_ip_handle*);
+int sr_icmp_handler(struct sr_ip_handle*);
+int sr_icmp_time_exceeded(struct sr_ip_handle*);
+int sr_ip_handler(struct sr_ip_handle*);
 uint16_t sr_ip_checksum(uint16_t const data[], uint16_t len);
 
 /* -- sr_main.c -- */
@@ -104,7 +104,7 @@ void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
 void sr_router_send(struct sr_ip_handle*);
 
 /* -- sr_if.c -- */
-int sr_if_name2idx(const char* name);
+uint8_t sr_if_name2idx(const char* name);
 struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip);
 void sr_add_interface(struct sr_instance* , const char* );
 void sr_set_ether_ip(struct sr_instance* , uint32_t );

@@ -7,18 +7,15 @@
 #include <string.h>
 #include "sr_router.h"
 /**
- * what to do if we get a packet that is too old (eg from traceroute)
- * fairly simple send a time exceeded icmp packet back where this came from
+ * does the job of swapping around the ethernet address and ip 
+ * when all you want to do is send something back on the same interface
  */
-void sr_icmp_time_exceeded(struct sr_ip_handle* h) 
+void sr_ip_reverse(struct sr_ip_packet* p, uint16_t len) 
 {
-	uint8_t  shost[ETHER_ADDR_LEN];
-	uint8_t  data[ICMP_TIMEOUT_SIZE];
+	uint8_t shost[ETHER_ADDR_LEN];
 	uint32_t s_ip;
-	struct sr_ip_packet* p = h->pkt;
 
-	/* but then copy the ip header and 64 bits of the original datagram */
-	memcpy(data, (uint8_t*) &p->ip, ICMP_TIMEOUT_SIZE);
+	assert(p);
 
 	/* swap the sender and receiver ethernet mac addresses */
 	memcpy(shost, p->eth.ether_dhost, ETHER_ADDR_LEN);
@@ -42,15 +39,34 @@ void sr_icmp_time_exceeded(struct sr_ip_handle* h)
 	p->ip.ip_src.s_addr = s_ip;
 
 	/* recalculate the length */
-	p->ip.ip_len = htons(20 /*ip*/ + 8 /*icmp*/ + 32 /*data*/);
+	p->ip.ip_len = htons(len);
 
 	/* now that we have everything in the ip header recompute the checksum */
 	p->ip.ip_sum = sr_ip_checksum((uint16_t*) &p->ip, sizeof(struct ip)/2);
 	printf(
-		"IP: time exceeded: calculated checksum %X, recalculated %X (should be 0)\n", 
+		"IP: calculated ip checksum %X, recalculated %X (should be 0)\n", 
 		ntohs(p->ip.ip_sum), 
 		sr_ip_checksum((uint16_t*) &p->ip, sizeof(struct ip)/2)
 	);
+}
+/**
+ * what to do if we get a packet that is too old (eg from traceroute)
+ * fairly simple send a time exceeded icmp packet back where this came from
+ * @return 1 if packet should be sent
+ */
+int sr_icmp_time_exceeded(struct sr_ip_handle* h) 
+{
+	uint8_t data[ICMP_TIMEOUT_SIZE];
+	struct sr_ip_packet* p;
+
+	assert(h);
+	p = h->pkt;
+
+	/* copy the ip header and 64 bits of the original datagram */
+	memcpy(data, (uint8_t*) &p->ip, ICMP_TIMEOUT_SIZE);
+
+	/* then reverse ip information so we can send the packet back */
+	sr_ip_reverse(p, (20 /*ip*/ + 8 /*icmp*/ + 32 /*data*/));
 
 	/* create the icmp packet */
 	p->d.icmp.type = ICMP_UNREACHABLE;
@@ -70,20 +86,47 @@ void sr_icmp_time_exceeded(struct sr_ip_handle* h)
 
 	/* recalculate the size of our packet */
 	h->len = sizeof(struct sr_ethernet_hdr) + ntohs(p->ip.ip_len);
+
+	return 1;
 }
 /**
  * what to do if we get an icmp request
+ * @return 0 means abort, non-zero: send packet
  */
-void sr_icmp_handler(struct sr_ip_handle* h) 
+int sr_icmp_handler(struct sr_ip_handle* h) 
 {
-	assert(h);
+	struct sr_ip_packet* p;
+	uint8_t type;
+	uint16_t len;
+
+	assert(h); 
+	p = h->pkt;
+	type = p->d.icmp.type;
+
+	switch(type) {
+	case ICMP_ECHO_REQUEST: 
+		printf("IP: icmp: got an echo request\n"); 
+		sr_ip_reverse(p,ntohs(p->ip.ip_len));
+		p->d.icmp.type = 0;
+		p->d.icmp.code = 0;
+		p->d.icmp.checksum = 0;
+		len = h->len - sizeof(h->pkt->eth) - sizeof(h->pkt->ip);
+		p->d.icmp.checksum = sr_ip_checksum((uint16_t*) &p->d.icmp, len/2);
+		return 1;
+	break;
+	default: 
+		printf("IP: icmp: got something else %d\n", type);
+	}
+	return 0;
 }
 /**
  * what to do with other ip packets
+ * @return 0 means abort, non-zero means send packet
  */
-void sr_ip_handler(struct sr_ip_handle* h) 
+int sr_ip_handler(struct sr_ip_handle* h) 
 {
 	assert(h);
+	return 0;
 }
 /**
  * do a basic checksum calculation
