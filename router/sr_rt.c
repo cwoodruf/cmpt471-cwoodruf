@@ -155,7 +155,6 @@ void sr_add_rt_entry(struct sr_instance* sr, struct in_addr dest,
         sr->routing_table->mask = mask;
 	sr->routing_table->ifidx = sr_if_name2idx(if_name);
         strncpy(sr->routing_table->interface,if_name,sr_IFACE_NAMELEN);
-
         return;
     }
 
@@ -187,11 +186,11 @@ void sr_print_routing_table(struct sr_instance* sr)
 
     if(sr->routing_table == 0)
     {
-        printf(" *warning* Routing table empty \n");
+        printf("RT:  *warning* Routing table empty \n");
         return;
     }
 
-    printf("Destination\tGateway\t\tMask\tIface\n");
+    printf("RT: %-20s %-20s %-20s %-20s\n","Destination","Gateway","Mask","Iface");
 
     rt_walker = sr->routing_table;
     
@@ -215,9 +214,9 @@ void sr_print_routing_entry(struct sr_rt* entry)
     assert(entry);
     assert(entry->interface);
 
-    printf("%s\t\t",inet_ntoa(entry->dest));
-    printf("%s\t",inet_ntoa(entry->gw));
-    printf("%s\t",inet_ntoa(entry->mask));
-    printf("%s\n",entry->interface);
+    printf("RT: %-20s ",inet_ntoa(entry->dest));
+    printf("%-20s ",inet_ntoa(entry->gw));
+    printf("%-20s ",inet_ntoa(entry->mask));
+    printf("%-20s\n",entry->interface);
 
 } /* -- sr_print_routing_entry -- */
