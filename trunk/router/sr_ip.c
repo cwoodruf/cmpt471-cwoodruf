@@ -54,7 +54,7 @@ void sr_ip_reverse(struct sr_ip_packet* p, uint16_t len)
  * fairly simple send a time exceeded icmp packet back where this came from
  * @return 1 if packet should be sent
  */
-int sr_icmp_time_exceeded(struct sr_ip_handle* h) 
+int sr_icmp_unreachable(struct sr_ip_handle* h) 
 {
 	uint8_t data[ICMP_TIMEOUT_SIZE];
 	struct sr_ip_packet* p;

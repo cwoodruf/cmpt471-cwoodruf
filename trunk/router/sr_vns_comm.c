@@ -172,34 +172,34 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
 
     num_entries = (ntohl(hwinfo->mLen) - (2*sizeof(uint32_t)))/sizeof(c_hw_entry);
 
-    Debug("Received Hardware Info with %d entries\n",num_entries);
+    Debug("VNSCOMM: Received Hardware Info with %d entries\n",num_entries);
 
     for ( i=0; i<num_entries; i++ )
     {
         switch( ntohl(hwinfo->mHWInfo[i].mKey))
         {
             case HWFIXEDIP:
-                Debug("Fixed IP: %s\n",inet_ntoa( *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
+                Debug("VNSCOMM: Fixed IP: %s\n",inet_ntoa( *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
                 break;
             case HWINTERFACE:
-                Debug("INTERFACE: %s\n",hwinfo->mHWInfo[i].value);
+                Debug("VNSCOMM: INTERFACE: %s\n",hwinfo->mHWInfo[i].value);
                 sr_add_interface(sr,hwinfo->mHWInfo[i].value);
                 break;
             case HWSPEED:
-                Debug("Speed: %d\n", ntohl(*((unsigned int*)hwinfo->mHWInfo[i].value)));
+                Debug("VNSCOMM: Speed: %d\n", ntohl(*((unsigned int*)hwinfo->mHWInfo[i].value)));
                 break;
             case HWSUBNET:
-                Debug("Subnet: %s\n",inet_ntoa( *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
+                Debug("VNSCOMM: Subnet: %s\n",inet_ntoa( *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
                 break;
             case HWMASK:
-                Debug("Mask: %s\n",inet_ntoa( *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
+                Debug("VNSCOMM: Mask: %s\n",inet_ntoa( *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
                 break;
             case HWETHIP:
-                Debug("IP: %s\n",inet_ntoa( *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
+                Debug("VNSCOMM: IP: %s\n",inet_ntoa( *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
                 sr_set_ether_ip(sr,*((uint32_t*)hwinfo->mHWInfo[i].value));
                 break;
             case HWETHER:
-                Debug("\tHardware Address: "); DebugMAC(hwinfo->mHWInfo[i].value); Debug("\n"); 
+                Debug("VNSCOMM: Hardware Address: "); DebugMAC(hwinfo->mHWInfo[i].value); Debug("\n"); 
                 sr_set_ether_addr(sr,(unsigned char*)hwinfo->mHWInfo[i].value);
                 break;
             default:
@@ -207,11 +207,11 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
         } /* -- switch -- */
     } /* -- for -- */
 
-    printf("Router interfaces:\n");
+    printf("VNSCOMM: Router interfaces:\n");
     sr_print_if_list(sr);
 
     /** see sr_arp.c - cal */
-    printf("VNS_COMM: Sending arp broadcasts on each interface\n");
+    printf("VNSCOMM: Sending arp broadcasts on each interface\n");
     sr_arp_scan(sr);
     /** end sr_arp.c code */
 
@@ -298,7 +298,7 @@ int sr_handle_auth_request(struct sr_instance* sr, c_auth_request* req) {
 
 int sr_handle_auth_status(struct sr_instance* sr, c_auth_status* status) {
     if(status->auth_ok)
-        printf("successfully authenticated as %s\n", sr->user);
+        printf("VNSCOMM: successfully authenticated as %s\n", sr->user);
     else
         fprintf(stderr, "Authentication failed as %s: %s\n", sr->user, status->msg);
     return status->auth_ok;
@@ -458,7 +458,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
                 fprintf(stderr,"Routing table not consistent with hardware\n");
                 return -1;
             }
-            printf(" <-- Ready to process packets --> \n");
+            printf("VNSCOMM:  <-- Ready to process packets --> \n");
             break;
 
             /* ---------------- VNS_RTABLE ---------------- */
@@ -480,7 +480,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
             break;
 
         default:
-            Debug("unknown command: %d\n", command);
+            Debug("VNSCOMM: unknown command: %d\n", command);
             break;
 
     }/* -- switch -- */

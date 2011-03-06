@@ -29,16 +29,29 @@
  * get an index into the routing array based on the last character of the name 
  * this is crude and slow so we should save these indices in the routing table
  * for later use
+ * TODO: come up with better hashing or numericalizing function
  */
 uint8_t sr_if_name2idx(const char* name) {
-	unsigned int i = atoi(name+3);
-	return (uint8_t) i;
+	return (uint8_t) atoi(name+3);
+}
+/**
+ * unfortunately the vns server itself sends these "eth" strings for the interfaces
+ * when we process a packet so we have to do this look up every packet
+ */ 
+struct sr_if* sr_if_name2iface(struct sr_instance* sr, const char* name) {
+	return sr->interfaces[ sr_if_name2idx(name) ];
 }
 /**
  * find an interface from its ip address
+ * check to make sure it really is for us by checking the ip address
  */
 struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip) {
-	return sr->ip2iface[ sr_arp_get_index(ip) ];
+	struct sr_if* i;
+	i = sr->ip2iface[ sr_arp_get_index(ip) ];
+	if (i) {
+		if (i->ip == ip) return i;
+	}
+	return NULL;
 }
 
 /*--------------------------------------------------------------------- 
