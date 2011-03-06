@@ -17,7 +17,6 @@
 #include <time.h>
 
 
-#include "sr_if.h"
 #include "sr_rt.h"
 #include "sr_router.h"
 #include "sr_protocol.h"
@@ -41,6 +40,8 @@ void sr_init(struct sr_instance* sr)
     Debug("ROUTER: sr_init: zero out ip2iface and interfaces tables\n");
     memset(sr->ip2iface,0,sizeof(sr->ip2iface)); 
     memset(sr->interfaces,0,sizeof(sr->interfaces)); 
+    Debug("ROUTER: setting buffer start to NULL\n");
+    sr->buffer->start = sr->buffer->end = NULL;
 
 } /* -- sr_init -- */
 
@@ -149,8 +150,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
 }/* end sr_handlepacket */
 
-
-/*--------------------------------------------------------------------- 
+/**--------------------------------------------------------------------- 
  * Method: sr_router_send
  *
  * figure out where we are sending and do basic sanity check
@@ -173,6 +173,11 @@ void sr_router_send(struct sr_ip_handle* h)
 	if (arp_entry->tries > 5) {
 		Debug("ROUTER: interface %s is disconnected (tries %d) - aborting\n", 
 			sender->interface, arp_entry->tries);
+		return;
+	} else if (arp_entry->tries > 0) {
+		Debug("ROUTER: interface %s arp entry being refreshed (tries %d) buffering packet\n",
+			sender->interface, arp_entry->tries);
+		sr_buffer_add(h);
 		return;
 	}
 	Debug("ROUTER: attempting to send packet (size %d bytes) on interface %s\n", 

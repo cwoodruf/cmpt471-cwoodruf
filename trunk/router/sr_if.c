@@ -31,21 +31,25 @@
  * for later use
  * TODO: come up with better hashing or numericalizing function
  */
-uint8_t sr_if_name2idx(const char* name) {
+uint8_t sr_if_name2idx(const char* name) 
+{
 	return (uint8_t) atoi(name+3);
 }
 /**
  * unfortunately the vns server itself sends these "eth" strings for the interfaces
  * when we process a packet so we have to do this look up every packet
  */ 
-struct sr_if* sr_if_name2iface(struct sr_instance* sr, const char* name) {
+struct sr_if* sr_if_name2iface(struct sr_instance* sr, const char* name) 
+{
 	return sr->interfaces[ sr_if_name2idx(name) ];
 }
+
 /**
  * find an interface from its ip address
  * check to make sure it really is for us by checking the ip address
  */
-struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip) {
+struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip) 
+{
 	struct sr_if* i;
 	i = sr->ip2iface[ sr_arp_get_index(ip) ];
 	if (i) {
