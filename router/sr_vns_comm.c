@@ -513,7 +513,8 @@ sr_ether_addrs_match_interface( struct sr_instance* sr, /* borrowed */
     assert(name);
 
     ether_hdr = (struct sr_ethernet_hdr*)buf;
-    iface = sr_get_interface(sr, name);
+    /* iface = sr_get_interface(sr, name); */
+    iface = sr_if_name2iface(sr, name);
 
     if ( iface == 0 )
     {
@@ -636,7 +637,7 @@ int  sr_arp_req_not_for_us(struct sr_instance* sr,
                            unsigned int len,
                            char* interface  /* lent */)
 {
-    struct sr_if* iface = sr_get_interface(sr, interface);
+    struct sr_if* iface = sr_if_name2iface(sr,interface); /* sr_get_interface(sr, interface); */
     struct sr_ethernet_hdr* e_hdr = 0;
     struct sr_arphdr*       a_hdr = 0;
 

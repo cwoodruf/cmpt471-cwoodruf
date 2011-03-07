@@ -69,6 +69,7 @@ void sr_handlepacket(struct sr_instance* sr,
     int                     send_result;
     uint32_t                ip_src, ip_dst;
     struct sr_rt            *rt_src, *rt_dst;
+    time_t                  t;
 
     /* REQUIRES */
     assert(sr);
@@ -77,6 +78,8 @@ void sr_handlepacket(struct sr_instance* sr,
 
     e_hdr = (struct sr_ethernet_hdr*)packet;
 
+    time(&t);
+    Debug("ROUTER: %s",ctime(&t));
 /*    Debug("ROUTER: Ethernet destination MAC: "); DebugMAC(e_hdr->ether_dhost); */
 /*    Debug(" ethernet source MAC: "); DebugMAC(e_hdr->ether_shost); Debug("\n"); */
 
