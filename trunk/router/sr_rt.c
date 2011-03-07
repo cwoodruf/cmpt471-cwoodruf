@@ -48,11 +48,12 @@ struct sr_rt* sr_rt_find(struct sr_instance* sr, uint32_t ip)
         if (walker->dest.s_addr == 0) {
                 elsewhere = walker;
         } else if (
-		(prefix = (walker->dest.s_addr & walker->mask.s_addr)) == 
-			(ip & walker->mask.s_addr)
-	) {
+                (prefix = (walker->dest.s_addr & walker->mask.s_addr)) == 
+                        (ip & walker->mask.s_addr)
+        ) {
                 bestmatch = walker;
                 bestprefix = prefix;
+                if (walker->mask.s_addr == 0xFFFFFFFF) return walker;
         }
 
         while (walker->next) {
@@ -60,12 +61,13 @@ struct sr_rt* sr_rt_find(struct sr_instance* sr, uint32_t ip)
                 if (walker->dest.s_addr == 0) {
                         elsewhere = walker;
                 } else if (
-			(prefix = (walker->dest.s_addr & walker->mask.s_addr)) == 
-				(ip & walker->mask.s_addr)
-		) {
+                        (prefix = (walker->dest.s_addr & walker->mask.s_addr)) == 
+                                (ip & walker->mask.s_addr)
+                ) {
                         if (bestprefix == 0 || prefix > bestprefix) {
                                 bestprefix = prefix;
                                 bestmatch = walker;
+                                if (walker->mask.s_addr == 0xFFFFFFFF) return walker;
                         }
                 }
         }
@@ -152,7 +154,9 @@ void sr_add_rt_entry(struct sr_instance* sr, struct in_addr dest,
         sr->routing_table->dest = dest;
         sr->routing_table->gw   = gw;
         sr->routing_table->mask = mask;
-	sr->routing_table->ifidx = sr_if_name2idx(if_name);
+        /* hack to filter out traffic not for us */
+        if (dest.s_addr) sr->here = dest.s_addr & 0xFFFFFF00;
+        sr->routing_table->ifidx = sr_if_name2idx(if_name);
         strncpy(sr->routing_table->interface,if_name,sr_IFACE_NAMELEN);
         return;
     }
@@ -170,6 +174,8 @@ void sr_add_rt_entry(struct sr_instance* sr, struct in_addr dest,
     rt_walker->dest = dest;
     rt_walker->gw   = gw;
     rt_walker->mask = mask;
+    /* hack to filter out traffic not for us */
+    if (dest.s_addr) sr->here = dest.s_addr & 0xFFFFFF00;
     strncpy(rt_walker->interface,if_name,sr_IFACE_NAMELEN);
 
 } /* -- sr_add_entry -- */

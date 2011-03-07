@@ -30,36 +30,36 @@
  */
 void sr_arp_check_refresh(struct sr_instance* sr) 
 {
-	time_t t, age, refreshage;
-	int i;
-	struct sr_arp* entry;
+        time_t t, age, refreshage;
+        int i;
+        struct sr_arp* entry;
 
-	assert(sr);
+        assert(sr);
 
-	refreshage = time(&t) - sr->arp_lastrefresh;
-	/* printf("ARP: running check refresh refresh age: %lds\n", refreshage); */
+        refreshage = time(&t) - sr->arp_lastrefresh;
+        /* printf("ARP: running check refresh refresh age: %lds\n", refreshage); */
 
-	if (refreshage >= ARP_CHECK_EVERY) {
-		for (i=0; i<LAN_SIZE; i++) {
-			entry = &sr->arp_table[i];
-			if (!entry->ip) continue;
+        if (refreshage >= ARP_CHECK_EVERY) {
+                for (i=0; i<LAN_SIZE; i++) {
+                        entry = &sr->arp_table[i];
+                        if (!entry->ip) continue;
 
-			age = t - entry->created;
-			printf("ARP: Entry %i aged %lds (ttl %ds)\n", i, age, ARP_TTL);
-			if (age <= ARP_TTL) continue;
+                        age = t - entry->created;
+                        printf("ARP: Entry %i aged %lds (ttl %ds)\n", i, age, ARP_TTL);
+                        if (age <= ARP_TTL) continue;
 
-			printf("ARP: Updating ");
-			sr_arp_print_entry(i,*entry);
+                        printf("ARP: Updating ");
+                        sr_arp_print_entry(i,*entry);
 
-			entry->tries++;
-			sr_arp_refresh(
-				sr,
-				entry->ip,
-				entry->iface->name
-			);
-		}
-		sr->arp_lastrefresh = t;
-	}
+                        entry->tries++;
+                        sr_arp_refresh(
+                                sr,
+                                entry->ip,
+                                entry->iface->name
+                        );
+                }
+                sr->arp_lastrefresh = t;
+        }
 }
 /*---------------------------------------------------------------------------*/
 /** 
@@ -70,8 +70,8 @@ void sr_arp_check_refresh(struct sr_instance* sr)
 */
 uint8_t sr_arp_get_index(uint32_t ip) 
 {
-	assert(ip);
-	return ARP_MASK & ntohl(ip);
+        assert(ip);
+        return ARP_MASK & ntohl(ip);
 }
 /*---------------------------------------------------------------------------*/
 /** 
@@ -82,29 +82,29 @@ uint8_t sr_arp_get_index(uint32_t ip)
 */
 struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface) 
 {
-	int index = sr_arp_get_index(ip);
-	struct sr_arp* entry = &sr->arp_table[ index ];
+        int index = sr_arp_get_index(ip);
+        struct sr_arp* entry = &sr->arp_table[ index ];
 
-	assert(sr);
-	assert(ip);
-	assert(mac);
-	assert(iface);
+        assert(sr);
+        assert(ip);
+        assert(mac);
+        assert(iface);
 
-	memset((void *)entry, 0, sizeof(struct sr_arp));
+        memset((void *)entry, 0, sizeof(struct sr_arp));
         entry->ip = ip;
-	memcpy(
-		entry->mac,
-		mac,
-		ETHER_ADDR_LEN
-	);
-	entry->iface = iface;
-	entry->tries = 0;
-	time(&entry->created);
+        memcpy(
+                entry->mac,
+                mac,
+                ETHER_ADDR_LEN
+        );
+        entry->iface = iface;
+        entry->tries = 0;
+        time(&entry->created);
 
-	printf("ARP: Created entry %d\n",index);
-	/* sr_arp_print_table(sr); */
+        printf("ARP: Created entry %d\n",index);
+        /* sr_arp_print_table(sr); */
 
-	return entry;
+        return entry;
 }
 /*---------------------------------------------------------------------------*/
 /**
@@ -113,13 +113,13 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
 */
 struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip) 
 {
-	int index = sr_arp_get_index(ip);
+        int index = sr_arp_get_index(ip);
 
-	assert(sr);
-	assert(ip);
-	assert(sr->arp_table[ index ].ip = ip);
-	
-	return &sr->arp_table[ index ];
+        assert(sr);
+        assert(ip);
+        assert(sr->arp_table[ index ].ip = ip);
+        
+        return &sr->arp_table[ index ];
 }
 /*---------------------------------------------------------------------------*/
 /**
@@ -127,90 +127,90 @@ struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip)
 */
 void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface) 
 {
-	int i;
-	uint8_t packet[
-		sizeof(struct sr_ethernet_hdr) + 
-		sizeof(struct sr_arphdr)
-	];
-	struct sr_ethernet_hdr* e_hdr = 
-			(struct sr_ethernet_hdr*)packet;
-	struct sr_arphdr* a_hdr = 
-			(struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
-	struct sr_if* iface = 
-			sr_get_interface(sr,interface);
+        int i;
+        uint8_t packet[
+                sizeof(struct sr_ethernet_hdr) + 
+                sizeof(struct sr_arphdr)
+        ];
+        struct sr_ethernet_hdr* e_hdr = 
+                        (struct sr_ethernet_hdr*)packet;
+        struct sr_arphdr* a_hdr = 
+                        (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
+        struct sr_if* iface = 
+                        sr_if_name2iface(sr,interface);
 
-	assert(sr);
-	assert(ip);
-	assert(interface);
-	if (!iface) {
-		printf("ARP: sr_arp_refresh: interface %s not found: aborting\n", interface); 
-		return;
-	}
+        assert(sr);
+        assert(ip);
+        assert(interface);
+        if (!iface) {
+                printf("ARP: sr_arp_refresh: interface %s not found: aborting\n", interface); 
+                return;
+        }
 
-	/* ethernet header for broadcast */
-	memset((void *)packet, 0, sizeof(packet));
-	for (i=0; i<ETHER_ADDR_LEN; i++) {
-		e_hdr->ether_dhost[i] = 0xFF;
-		e_hdr->ether_shost[i] = iface->addr[i]; 
-	} 
-	e_hdr->ether_type = htons(ETHERTYPE_ARP);
+        /* ethernet header for broadcast */
+        memset((void *)packet, 0, sizeof(packet));
+        for (i=0; i<ETHER_ADDR_LEN; i++) {
+                e_hdr->ether_dhost[i] = 0xFF;
+                e_hdr->ether_shost[i] = iface->addr[i]; 
+        } 
+        e_hdr->ether_type = htons(ETHERTYPE_ARP);
 
         /* arp message for broadcast */
-	a_hdr->ar_hrd = htons(ARPHDR_ETHER);
-	a_hdr->ar_pro = htons(ETHERTYPE_IP);
-	a_hdr->ar_hln = ETHER_ADDR_LEN;
-	a_hdr->ar_pln = sizeof(uint32_t);
-	a_hdr->ar_op = htons(ARP_REQUEST);
-	memcpy(a_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
-	a_hdr->ar_sip = iface->ip;
-	memcpy(a_hdr->ar_tha, sr_arp_get(sr,ip), ETHER_ADDR_LEN);
-	a_hdr->ar_tip = ip;
+        a_hdr->ar_hrd = htons(ARPHDR_ETHER);
+        a_hdr->ar_pro = htons(ETHERTYPE_IP);
+        a_hdr->ar_hln = ETHER_ADDR_LEN;
+        a_hdr->ar_pln = sizeof(uint32_t);
+        a_hdr->ar_op = htons(ARP_REQUEST);
+        memcpy(a_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
+        a_hdr->ar_sip = iface->ip;
+        memcpy(a_hdr->ar_tha, sr_arp_get(sr,ip), ETHER_ADDR_LEN);
+        a_hdr->ar_tip = ip;
 
-	/* send the packet and cross our fingers! */
-	sr_send_packet(sr, packet, sizeof(packet), interface);
+        /* send the packet and cross our fingers! */
+        sr_send_packet(sr, packet, sizeof(packet), interface);
 }
 /*---------------------------------------------------------------------------*/
 /**
  * recycle an arp request packet as a response
  */
 void sr_arp_request_response(
-	struct sr_instance* sr,
-	uint8_t* packet,
-	unsigned int len,
-	struct sr_if* iface
+        struct sr_instance* sr,
+        uint8_t* packet,
+        unsigned int len,
+        struct sr_if* iface
 ) {
-	struct sr_ethernet_hdr* e_hdr = 0;
-	struct sr_arphdr*       a_hdr = 0;
-	uint32_t                tmp_ip;
+        struct sr_ethernet_hdr* e_hdr = 0;
+        struct sr_arphdr*       a_hdr = 0;
+        uint32_t                tmp_ip;
 
-	assert(sr);
-	assert(packet);
-	assert(len);
-	assert(iface->ip);
+        assert(sr);
+        assert(packet);
+        assert(len);
+        assert(iface->ip);
 
-	e_hdr = (struct sr_ethernet_hdr*)packet;
-	a_hdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
+        e_hdr = (struct sr_ethernet_hdr*)packet;
+        a_hdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
 
-	/* check to see if the packet is for us */
-	if (iface->ip != a_hdr->ar_tip) {
-		printf("ARP: Arp request is not for us - aborting!");
-		return;
-	}
+        /* check to see if the packet is for us */
+        if (iface->ip != a_hdr->ar_tip) {
+                printf("ARP: Arp request is not for us - aborting!");
+                return;
+        }
 
-	/* recycle the packet as a response */
-	memcpy(e_hdr->ether_dhost, e_hdr->ether_shost, ETHER_ADDR_LEN);
-	memcpy(e_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
-	a_hdr->ar_op = htons(ARP_REPLY);
+        /* recycle the packet as a response */
+        memcpy(e_hdr->ether_dhost, e_hdr->ether_shost, ETHER_ADDR_LEN);
+        memcpy(e_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
+        a_hdr->ar_op = htons(ARP_REPLY);
 
-	/* basically swap but add our ethernet address instead of the broadcast */
-	memcpy(a_hdr->ar_tha, a_hdr->ar_sha, ETHER_ADDR_LEN);
-	memcpy(a_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
+        /* basically swap but add our ethernet address instead of the broadcast */
+        memcpy(a_hdr->ar_tha, a_hdr->ar_sha, ETHER_ADDR_LEN);
+        memcpy(a_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
 
-	/* swap IPs as well of course */
-	tmp_ip = a_hdr->ar_sip;
-	a_hdr->ar_sip = a_hdr->ar_tip; 
-	a_hdr->ar_tip = tmp_ip; 
-	sr_send_packet(sr, (uint8_t*)packet, len, iface->name);
+        /* swap IPs as well of course */
+        tmp_ip = a_hdr->ar_sip;
+        a_hdr->ar_sip = a_hdr->ar_tip; 
+        a_hdr->ar_tip = tmp_ip; 
+        sr_send_packet(sr, (uint8_t*)packet, len, iface->name);
 }
 /*---------------------------------------------------------------------------*/
 /**
@@ -248,12 +248,12 @@ void sr_arp_scan(struct sr_instance* sr)
  */
 void sr_arp_print_table(struct sr_instance* sr) 
 {
-	int i;
-	printf("ARP: Current arp entries out of a total of %d:\n",LAN_SIZE);
-	for (i=0; i<LAN_SIZE; i++) {
-		if (sr->arp_table[i].ip) sr_arp_print_entry(i,sr->arp_table[i]);
-	}
-	printf("ARP: End of arp table.\n");
+        int i;
+        printf("ARP: Current arp entries out of a total of %d:\n",LAN_SIZE);
+        for (i=0; i<LAN_SIZE; i++) {
+                if (sr->arp_table[i].ip) sr_arp_print_entry(i,sr->arp_table[i]);
+        }
+        printf("ARP: End of arp table.\n");
 }
 /*---------------------------------------------------------------------------*/
 /**
@@ -261,13 +261,13 @@ void sr_arp_print_table(struct sr_instance* sr)
  */
 void sr_arp_print_entry(int i, struct sr_arp entry) 
 {
-	time_t t, age;
-	struct in_addr pr_ip;
+        time_t t, age;
+        struct in_addr pr_ip;
 
-	pr_ip.s_addr = entry.ip;
-	age = time(&t) - entry.created;
+        pr_ip.s_addr = entry.ip;
+        age = time(&t) - entry.created;
 
-	printf("ARP: table entry %d ip %s mac ", i, inet_ntoa(pr_ip));
-	DebugMAC(entry.mac);
-	printf(" tries %d age %lds created %s ", entry.tries, age, ctime(&entry.created));
+        printf("ARP: table entry %d ip %s mac ", i, inet_ntoa(pr_ip));
+        DebugMAC(entry.mac);
+        printf(" tries %d age %lds created %s ", entry.tries, age, ctime(&entry.created));
 }
