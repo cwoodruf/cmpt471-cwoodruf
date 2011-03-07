@@ -67,8 +67,6 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_ip_handle     ip_handler;
     uint16_t                checksum;
     int                     send_result;
-    uint32_t                ip_src, ip_dst;
-    struct sr_rt            *rt_src, *rt_dst;
     time_t                  t;
 
     /* REQUIRES */
@@ -88,20 +86,6 @@ void sr_handlepacket(struct sr_instance* sr,
     case ETHERTYPE_IP:
         Debug("ROUTER: IP packet\n");
         ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
-	/* getting lots of traffic not for this network for some reason */
-        ip_src = ip_hdr->ip_src.s_addr;
-        ip_dst = ip_hdr->ip_dst.s_addr;
-	/* this is very labor intensive but its the reliable way 
-           to identify stuff that is not leaving here or going to here */
-        rt_src = sr_rt_find(sr, ip_src);
-        rt_dst = sr_rt_find(sr, ip_dst);
-	if (rt_src->dest.s_addr == 0 && rt_dst->dest.s_addr == 0) {
-		Debug("ROUTER: going nowhere: ");
-		Debug("dst %s ", inet_ntoa(ip_hdr->ip_dst));
-		Debug("src %s ", inet_ntoa(ip_hdr->ip_src));
-		Debug(" - aborting!\n");
-		return;
-	}
         if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, (ip_hdr->ip_hl*4)))) {
                 Debug("ROUTER: IP checksum failed (got %X) - aborting\n", checksum);
                 return;
