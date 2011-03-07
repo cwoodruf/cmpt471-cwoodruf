@@ -10,8 +10,8 @@
 
 /** hold packets for this many seconds if they are buffered */
 #define PACKET_TOO_OLD 6
-/** how many packets to save - this is about 5x what is seen in test */
-#define BUFFSIZE 512
+/** how many packets to save - this is about 2x what is seen in test */
+#define BUFFSIZE 256
 
 /**
  * data structure to pass into the sr_ip.c functions
