@@ -35,18 +35,7 @@ void sr_init(struct sr_instance* sr)
     /* REQUIRES */
     assert(sr);
 
-    Debug("ROUTER: sr_init: zero out arp table and reset refresh timer\n");
-    memset(sr->arp_table,0,sizeof(struct sr_arp) * LAN_SIZE); 
-    time(&sr->arp_lastrefresh);
-    Debug("ROUTER: sr_init: zero out ip2iface and interfaces tables\n");
-    memset(sr->ip2iface,0,sizeof(struct sr_if*) * LAN_SIZE); 
-    memset(sr->interfaces,0,sizeof(struct sr_if*) * LAN_SIZE); 
-    Debug("ROUTER: setting buffer start to NULL\n");
-    sr->buffer.start = sr->buffer.end = sr->buffer.pos = NULL;
-
 } /* -- sr_init -- */
-
-
 
 /*---------------------------------------------------------------------
  * Method: sr_handlepacket(uint8_t* p,char* interface)
@@ -78,6 +67,7 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_ip_handle     ip_handler;
     uint16_t                checksum;
     int                     send_result;
+    uint32_t                ip_src, ip_dst;
 
     /* REQUIRES */
     assert(sr);
@@ -86,16 +76,17 @@ void sr_handlepacket(struct sr_instance* sr,
 
     e_hdr = (struct sr_ethernet_hdr*)packet;
 
-    Debug("ROUTER: Ethernet destination MAC: "); DebugMAC(e_hdr->ether_dhost); 
-    Debug(" ethernet source MAC: "); DebugMAC(e_hdr->ether_shost); Debug("\n");
+/*    Debug("ROUTER: Ethernet destination MAC: "); DebugMAC(e_hdr->ether_dhost); */
+/*    Debug(" ethernet source MAC: "); DebugMAC(e_hdr->ether_shost); Debug("\n"); */
 
     switch (ntohs(e_hdr->ether_type)) 
     {
     case ETHERTYPE_IP:
-        Debug("ROUTER: IP packet (doing checksum: %s)\n",(sr->dochecksum ? "yes":"no"));
+        Debug("ROUTER: IP packet\n");
         ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
-
-        if (sr->dochecksum && (checksum = sr_ip_checksum((uint16_t*) ip_hdr, (ip_hdr->ip_hl*4)))) {
+        ip_src = ip_hdr->ip_src.s_addr;
+        ip_dst = ip_hdr->ip_dst.s_addr;
+        if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, (ip_hdr->ip_hl*4)))) {
                 Debug("ROUTER: IP checksum failed (got %X) - aborting\n", checksum);
                 return;
         }

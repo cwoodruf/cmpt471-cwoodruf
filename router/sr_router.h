@@ -57,7 +57,6 @@ struct sr_instance
     time_t arp_lastrefresh; /** last time we ran sr_arp_check_refresh in sr_arp.c */
     struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.h  */
     struct sr_buffer buffer; /** store packets that can't be sent right away */
-    int dochecksum; /** use this to turn off doing ip checksums for debugging */
     FILE* logfile;
 };
 

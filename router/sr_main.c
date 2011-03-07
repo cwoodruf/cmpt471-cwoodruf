@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <sys/types.h>
+#include <time.h>
 
 #ifdef _LINUX_
 #include <getopt.h>
@@ -69,18 +70,14 @@ int main(int argc, char **argv)
     unsigned int port = DEFAULT_PORT;
     unsigned int topo = DEFAULT_TOPO;
     char *logfile = 0;
-    int dochecksum = 1;
     struct sr_instance sr;
 
     printf("Using %s\n", VERSION_INFO);
 
-    while ((c = getopt(argc, argv, "hCa:s:v:p:u:t:r:l:T:")) != EOF)
+    while ((c = getopt(argc, argv, "ha:s:v:p:u:t:r:l:T:")) != EOF)
     {
         switch (c)
         {
-            case 'C':
-                dochecksum = 0;
-                break;
             case 'h':
                 usage(argv[0]);
                 exit(0);
@@ -127,7 +124,6 @@ int main(int argc, char **argv)
         strncpy(sr.template, template, 30);
 
     sr.topo_id = topo;
-    sr.dochecksum = dochecksum;
     strncpy(sr.host,host,32);
     strncpy(sr.auth_key_fn,auth_key_file,64);
 
@@ -191,7 +187,7 @@ static void usage(char* argv0)
     printf("Format: %s [-h] [-v host] [-s server] [-p port] \n",argv0);
     printf("           [-T template_name] [-u username] [-a auth_key_filename]\n");
     printf("           [-t topo id] [-r routing table] \n");
-    printf("           [-l log file] [-C do NOT do ip checksum]\n");
+    printf("           [-l log file] \n");
 #ifdef DEFAULT_USER
     printf("   defaults server=%s port=%d host=%s topo=%d user=%s\n",
             DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST, DEFAULT_TOPO, DEFAULT_USER );
@@ -272,6 +268,16 @@ static void sr_init_instance(struct sr_instance* sr)
     sr->if_list = 0;
     sr->routing_table = 0;
     sr->logfile = 0;
+
+    Debug("MAIN: sr_init: zero out arp table and reset refresh timer\n");
+    memset(sr->arp_table,0,sizeof(struct sr_arp) * LAN_SIZE);
+    time(&sr->arp_lastrefresh);
+    Debug("MAIN: sr_init: zero out ip2iface and interfaces tables\n");
+    memset(sr->ip2iface,0,sizeof(struct sr_if*) * LAN_SIZE);
+    memset(sr->interfaces,0,sizeof(struct sr_if*) * LAN_SIZE);
+    Debug("MAIN: setting buffer start to NULL\n");
+    sr->buffer.start = sr->buffer.end = sr->buffer.pos = NULL;
+
 } /* -- sr_init_instance -- */
 
 /*-----------------------------------------------------------------------------
