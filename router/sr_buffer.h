@@ -6,8 +6,12 @@
 #ifndef SR_BUFFER_H
 #define SR_BUFFER_H
 
+#include "vnscommand.h"
+
 /** hold packets for this many seconds if they are buffered */
-#define PACKET_TOO_OLD 600
+#define PACKET_TOO_OLD 6
+/** how many packets to save - this is about 5x what is seen in test */
+#define BUFFSIZE 512
 
 /**
  * data structure to pass into the sr_ip.c functions
@@ -29,12 +33,14 @@ struct sr_buffer_item
         time_t created;
         struct sr_buffer_item* prev;
         struct sr_buffer_item* next;
+	int    pos;
 };
 
 struct sr_buffer 
 {
+	struct sr_buffer_item items[BUFFSIZE];
+	uint8_t packets[BUFFSIZE][VNSCMDSIZE+MPADDING];
         struct sr_buffer_item* start;
-        struct sr_buffer_item* pos;
         struct sr_buffer_item* end;
 };
 

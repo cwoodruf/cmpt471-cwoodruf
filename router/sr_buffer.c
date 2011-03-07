@@ -9,18 +9,50 @@
 #include "sr_router.h"
 #include "sr_buffer.h"
 /**
+ * our versions of malloc and free that 
+ * use a fixed array to avoid memory corruption problems
+ */
+struct sr_buffer_item* sr_buffer_malloc(struct sr_instance* sr) 
+{
+	struct sr_buffer_item* b;
+	int i;
+
+	assert(sr);
+
+	for (i=0; i<BUFFSIZE; i++) {
+		b = &sr->buffer.items[i];
+		if (b->h.buffered == 0) {
+			b->h.raw = sr->buffer.packets[i];
+			b->h.buffered = b;
+			b->pos = i;
+			return b;
+		}
+	}
+	return NULL;
+}
+void sr_buffer_free(struct sr_instance* sr, struct sr_buffer_item* item) 
+{
+	uint8_t* s;
+
+	assert(sr);
+	if (!item->h.buffered) return;
+	if (item->pos < 0 || item->pos >= BUFFSIZE) return;
+
+	s = sr->buffer.packets[item->pos];
+
+	memset(s,0,sizeof(*s));
+	item->h.buffered = 0;
+}
+/**
  * initialize the buffer for the interface
  */
 void sr_buffer_clear(struct sr_instance* sr) 
 {
-        struct sr_buffer_item* i,* b;
         assert(sr);
-        b = sr->buffer.start;
-        while (b) {
-                i = b;
-                b = b->next;
-                free(i);        
-        }
+
+	memset(&sr->buffer,0,sizeof(struct sr_buffer));
+
+	sr->buffer.start = sr->buffer.end = 0;
 }
 /** 
  * save a packet to the buffer 
@@ -40,22 +72,14 @@ void sr_buffer_add(struct sr_ip_handle* h)
         assert(sr);
         b = &sr->buffer;
 
-        raw = (uint8_t*) malloc(h->raw_len);
-        if (!raw) {
-                Debug("BUFFER: not enough memory to save packet - aborting!\n");
-                return;
-        }
-        memcpy(raw, h->raw, h->raw_len);
-        
-        i = (struct sr_buffer_item*)(malloc(sizeof(struct sr_buffer_item)));
+        i = sr_buffer_malloc(sr);
         if (!i) {
                 Debug("BUFFER: out of memory for buffer item - aborting!\n");
-                free(raw);
                 return;
         }
         h->buffered = i;
         i->h = *h;
-        i->h.raw = raw;
+        memcpy(i->h.raw, h->raw, h->raw_len);
         i->h.pkt = (struct sr_ip_packet*)raw;
         time(&i->created);
         i->next = 0;
@@ -101,9 +125,9 @@ void sr_buffer_remove(struct sr_instance* sr, struct sr_buffer_item* item)
 
                 /* only item in list */
                 } else {
-                        b->end = b->start = b->pos = 0;
+                        b->end = b->start = 0;
                 }
-                free(delitem);
+                sr_buffer_free(sr,delitem);
         }
 }
 

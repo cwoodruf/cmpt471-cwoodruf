@@ -78,7 +78,7 @@ uint8_t sr_arp_get_index(uint32_t ip)
     arp setter 
     given an ip and mac address
     refresh the arp entry
-    @return the index into the arp entry
+    @return the arp entry
 */
 struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface) 
 {
@@ -109,7 +109,7 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
 /*---------------------------------------------------------------------------*/
 /**
     arp getter
-    @return mac address
+    @return the arp entry
 */
 struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip) 
 {
@@ -217,9 +217,6 @@ void sr_arp_request_response(
     scan the routing table (taken from sr_rt.c's sr_print_routing_table)
     and send arp requests for any relevant ip addresses we find
     in this case gateways as these are the only hosts we actually communicate with
-
-    TODO one problem with this implementation is that we don't check 
-    if we've already made a request to this gw
 */
 void sr_arp_scan(struct sr_instance* sr) 
 {
@@ -271,3 +268,4 @@ void sr_arp_print_entry(int i, struct sr_arp entry)
         DebugMAC(entry.mac);
         printf(" tries %d age %lds created %s ", entry.tries, age, ctime(&entry.created));
 }
+

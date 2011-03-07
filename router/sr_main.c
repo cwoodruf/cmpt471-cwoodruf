@@ -289,8 +289,8 @@ static void sr_init_instance(struct sr_instance* sr)
     Debug("MAIN: sr_init: zero out ip2iface and interfaces tables\n");
     memset(sr->ip2iface,0,sizeof(struct sr_if*) * LAN_SIZE);
     memset(sr->interfaces,0,sizeof(struct sr_if*) * LAN_SIZE);
-    Debug("MAIN: setting buffer start to NULL\n");
-    sr->buffer.start = sr->buffer.end = sr->buffer.pos = NULL;
+    Debug("MAIN: clearing buffer\n");
+    sr_buffer_clear(sr);
 
 } /* -- sr_init_instance -- */
 
