@@ -33,7 +33,7 @@
  */
 uint8_t sr_if_name2idx(const char* name) 
 {
-	return (uint8_t) atoi(name+3);
+        return (uint8_t) atoi(name+3);
 }
 /**
  * unfortunately the vns server itself sends these "eth" strings for the interfaces
@@ -41,7 +41,7 @@ uint8_t sr_if_name2idx(const char* name)
  */ 
 struct sr_if* sr_if_name2iface(struct sr_instance* sr, const char* name) 
 {
-	return sr->interfaces[ sr_if_name2idx(name) ];
+        return sr->interfaces[ sr_if_name2idx(name) ];
 }
 
 /**
@@ -50,12 +50,12 @@ struct sr_if* sr_if_name2iface(struct sr_instance* sr, const char* name)
  */
 struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip) 
 {
-	struct sr_if* i;
-	i = sr->ip2iface[ sr_arp_get_index(ip) ];
-	if (i) {
-		if (i->ip == ip) return i;
-	}
-	return NULL;
+        struct sr_if* i;
+        i = sr->ip2iface[ sr_arp_get_index(ip) ];
+        if (i) {
+                if (i->ip == ip) return i;
+        }
+        return NULL;
 }
 
 /*--------------------------------------------------------------------- 

@@ -11,11 +11,11 @@
 
 /** data structure for an arp entry */
 struct sr_arp {
-	uint32_t ip;
-	unsigned char mac[ETHER_ADDR_LEN];
-	struct sr_if* iface;
-	uint8_t tries;
-	time_t created;
+        uint32_t ip;
+        unsigned char mac[ETHER_ADDR_LEN];
+        struct sr_if* iface;
+        uint8_t tries;
+        time_t created;
 };
 
 /** mask for arp table hash function */

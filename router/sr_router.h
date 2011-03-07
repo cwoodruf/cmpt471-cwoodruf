@@ -56,21 +56,22 @@ struct sr_instance
     struct sr_rt* routing_table; /* routing table */
     time_t arp_lastrefresh; /** last time we ran sr_arp_check_refresh in sr_arp.c */
     struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.h  */
-    struct sr_buffer* buffer; /** store packets that can't be sent right away */
+    struct sr_buffer buffer; /** store packets that can't be sent right away */
     int dochecksum; /** use this to turn off doing ip checksums for debugging */
     FILE* logfile;
 };
 
 /* -- sr_arp.c -- */
 uint8_t sr_arp_get_index(uint32_t ip);
-struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface);
+struct sr_arp* 
+        sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface);
 struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip);
 
 void sr_arp_scan(struct sr_instance* sr);
 void sr_arp_check_refresh(struct sr_instance* sr);
 void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface);
 void sr_arp_request_response(
-	struct sr_instance* sr, uint8_t* packet, unsigned int len, struct sr_if* iface);
+        struct sr_instance* sr, uint8_t* packet, unsigned int len, struct sr_if* iface);
 
 void sr_arp_print_table(struct sr_instance* sr);
 void sr_arp_print_entry(int i, struct sr_arp entry);
@@ -78,8 +79,7 @@ void sr_arp_print_entry(int i, struct sr_arp entry);
 /* -- sr_buffer.c -- */
 void sr_buffer_clear(struct sr_instance*);
 void sr_buffer_add(struct sr_ip_handle*);
-struct sr_buffer_item* sr_buffer_getnext(struct sr_instance*);
-void sr_buffer_removenext(struct sr_instance*);
+void sr_buffer_remove(struct sr_instance*,struct sr_buffer_item*);
 
 /* -- sr_ip.c -- */
 int sr_icmp_handler(struct sr_ip_handle*);
@@ -100,7 +100,8 @@ void sr_log_packet(struct sr_instance* sr, uint8_t* buf, int len );
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* );
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
-void sr_router_send(struct sr_ip_handle*);
+int sr_router_send(struct sr_ip_handle*);
+void sr_router_resend(struct sr_instance*);
 
 /* -- sr_if.c -- */
 /** newer functions that use arrays and quasi hashing to find things faster */

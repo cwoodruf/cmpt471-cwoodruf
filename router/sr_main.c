@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     {
         switch (c)
         {
-	    case 'C':
+            case 'C':
                 dochecksum = 0;
                 break;
             case 'h':
@@ -171,7 +171,8 @@ int main(int argc, char **argv)
 
     /* -- whizbang main loop ;-) */
     while( sr_read_from_server(&sr) == 1) { 
-	sr_arp_check_refresh(&sr); 
+        sr_arp_check_refresh(&sr); 
+        sr_router_resend(&sr);
     }
 
     sr_destroy_instance(&sr);
