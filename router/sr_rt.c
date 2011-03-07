@@ -74,6 +74,21 @@ struct sr_rt* sr_rt_find(struct sr_instance* sr, uint32_t ip)
         if (bestprefix == 0) return elsewhere;
         return bestmatch;
 }
+/**
+ * free routing table 
+ */
+void sr_rt_clear(struct sr_instance* sr) {
+	struct sr_rt *r, *del;
+
+	assert(sr);
+	r = sr->routing_table;
+	while (r) {
+		del = r;
+		r = r->next;
+		free(del);
+	}
+	sr->routing_table = 0;
+}
 /*--------------------------------------------------------------------- 
  * Method:
  *

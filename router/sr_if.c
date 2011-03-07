@@ -58,6 +58,24 @@ struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip)
         return NULL;
 }
 
+/**
+ * clear all iface related variables
+ */
+void sr_if_clear(struct sr_instance* sr) {
+	int i;
+	assert(sr);
+	for (i=0; i<=LAN_SIZE; i++) {
+		if (sr->interfaces[i]) {
+			free(sr->interfaces[i]);
+			sr->interfaces[i] = 0;
+		}
+		if (sr->ip2iface[i]) {
+			free(sr->ip2iface[i]);
+			sr->ip2iface[i] = 0;
+		}
+	}
+	sr->if_list = 0;
+}
 /*--------------------------------------------------------------------- 
  * Method: sr_get_interface
  * Scope: Global
