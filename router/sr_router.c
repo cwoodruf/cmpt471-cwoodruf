@@ -68,6 +68,7 @@ void sr_handlepacket(struct sr_instance* sr,
     uint16_t                checksum;
     int                     send_result;
     uint32_t                ip_src, ip_dst;
+    struct sr_rt            *rt_src, *rt_dst;
 
     /* REQUIRES */
     assert(sr);
@@ -84,8 +85,16 @@ void sr_handlepacket(struct sr_instance* sr,
     case ETHERTYPE_IP:
         Debug("ROUTER: IP packet\n");
         ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
+	/* getting lots of traffic not for this network for some reason */
         ip_src = ip_hdr->ip_src.s_addr;
         ip_dst = ip_hdr->ip_dst.s_addr;
+	/* this is very labor intensive but its the reliable way 
+           to identify stuff that is not leaving here or going to here */
+        rt_src = sr_rt_find(sr, ip_src);
+        rt_dst = sr_rt_find(sr, ip_dst);
+	if (rt_src->dest.s_addr == 0 && rt_dst->dest.s_addr == 0) {
+		Debug("ROUTER: going nowhere - aborting!\n");
+	}
         if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, (ip_hdr->ip_hl*4)))) {
                 Debug("ROUTER: IP checksum failed (got %X) - aborting\n", checksum);
                 return;
@@ -159,9 +168,7 @@ int sr_router_send(struct sr_ip_handle* h)
         assert(h->sr);
         assert(h->pkt->ip.ip_dst.s_addr);
 
-        /* check if we can send on this interface */
         sender = sr_rt_find(h->sr, h->pkt->ip.ip_dst.s_addr );
-
         arp_entry = sr_arp_get(h->sr, sender->gw.s_addr);
 
         if (arp_entry->tries > 5) {
@@ -215,8 +222,9 @@ void sr_router_resend(struct sr_instance* sr) {
                 i = b->start;
                 while (i) {
                         ip = &i->h.pkt->ip;
-                        Debug("ROUTER: attempting to resend packet (proto %d, from %s, to %s)\n",
-                                ip->ip_p, inet_ntoa(ip->ip_src), inet_ntoa(ip->ip_dst));
+                        Debug("ROUTER: attempting to resend packet (proto %d, from %s, ",
+                                ip->ip_p, inet_ntoa(ip->ip_src));
+			Debug("to %s)\n", inet_ntoa(ip->ip_dst));
                         if (time(&t) - i->created > PACKET_TOO_OLD) { 
                                 Debug("ROUTER: packet too old - deleting\n");
                                 sr_buffer_remove(sr,i);
