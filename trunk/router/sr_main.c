@@ -239,7 +239,10 @@ void sr_set_user(struct sr_instance* sr)
  *
  *----------------------------------------------------------------------------*/
 void sr_main_abort(int signal) {
+	Debug("MAIN: doing sr_destroy_instance\n");
 	sr_destroy_instance(&sr);
+	Debug("MAIN: sr_destroy_instance finished - exiting\n");
+	exit(0);
 }
 
 static void sr_destroy_instance(struct sr_instance* sr)
