@@ -63,7 +63,6 @@ void sr_buffer_add(struct sr_ip_handle* h)
         struct sr_buffer* b;
         struct sr_buffer_item* i;
         struct ip* ip;
-        uint8_t* raw;
 
         assert(h);
         if (h->buffered) return;
@@ -80,7 +79,7 @@ void sr_buffer_add(struct sr_ip_handle* h)
         h->buffered = i;
         i->h = *h;
         memcpy(i->h.raw, h->raw, h->raw_len);
-        i->h.pkt = (struct sr_ip_packet*)raw;
+        i->h.pkt = (struct sr_ip_packet*)i->h.raw;
         time(&i->created);
         i->next = 0;
 
