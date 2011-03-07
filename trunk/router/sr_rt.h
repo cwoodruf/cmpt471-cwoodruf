@@ -26,7 +26,6 @@
  * Node in the routing table 
  *
  * -------------------------------------------------------------------------- */
-
 struct sr_rt
 {
     struct in_addr dest;
