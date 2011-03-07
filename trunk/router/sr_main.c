@@ -25,6 +25,7 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <time.h>
+#include <signal.h>
 
 #ifdef _LINUX_
 #include <getopt.h>
@@ -55,6 +56,9 @@ static void sr_destroy_instance(struct sr_instance* );
 static void sr_set_user(struct sr_instance* );
 static void sr_load_rt_wrap(struct sr_instance* sr, char* rtable);
 
+struct sr_instance sr;
+void sr_main_abort(int sig);
+
 /*-----------------------------------------------------------------------------
  *---------------------------------------------------------------------------*/
 
@@ -70,9 +74,10 @@ int main(int argc, char **argv)
     unsigned int port = DEFAULT_PORT;
     unsigned int topo = DEFAULT_TOPO;
     char *logfile = 0;
-    struct sr_instance sr;
+    (void) signal(SIGINT, sr_main_abort);
 
     printf("Using %s\n", VERSION_INFO);
+    
 
     while ((c = getopt(argc, argv, "ha:s:v:p:u:t:r:l:T:")) != EOF)
     {
@@ -233,6 +238,9 @@ void sr_set_user(struct sr_instance* sr)
  *
  *
  *----------------------------------------------------------------------------*/
+void sr_main_abort(int signal) {
+	sr_destroy_instance(&sr);
+}
 
 static void sr_destroy_instance(struct sr_instance* sr)
 {
@@ -243,7 +251,10 @@ static void sr_destroy_instance(struct sr_instance* sr)
     {
         sr_dump_close(sr->logfile);
     }
-
+    sr_rt_clear(sr);
+    sr_if_clear(sr);
+    sr_buffer_clear(sr);
+    
     /*
     fprintf(stderr,"sr_destroy_instance leaking memory\n");
     */

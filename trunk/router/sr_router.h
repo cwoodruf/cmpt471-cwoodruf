@@ -107,6 +107,7 @@ void sr_router_resend(struct sr_instance*);
 uint8_t sr_if_name2idx(const char* name);
 struct sr_if* sr_if_name2iface(struct sr_instance* sr, const char* name);
 struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip);
+void sr_if_clear(struct sr_instance* sr);
 
 void sr_add_interface(struct sr_instance* , const char* );
 void sr_set_ether_ip(struct sr_instance* , uint32_t );
