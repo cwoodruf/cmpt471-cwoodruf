@@ -243,7 +243,7 @@ int sr_handle_auth_request(struct sr_instance* sr, c_auth_request* req) {
     FILE* fp;
     SHA1Context sha1;
     c_auth_reply* ar;
-    char* buf;
+    char buf[VNSCMDSIZE + MPADDING];
     int len, len_username, i, ret;
 
     /* read in the user's auth key */
@@ -267,11 +267,13 @@ int sr_handle_auth_request(struct sr_instance* sr, c_auth_request* req) {
         /* build the auth reply packet and then send it */
         len_username = strlen(sr->user);
         len = sizeof(c_auth_reply) + len_username + SHA1_LEN;
-        buf = (char*)malloc(len);
+/*
+        buf = (char*)malloc(len + MPADDING);
         if(!buf) {
             perror("malloc failed");
             return 0;
         }
+*/
         ar = (c_auth_reply*)buf;
         ar->mLen = htonl(len);
         ar->mType = htonl(VNS_AUTH_REPLY);
@@ -287,7 +289,9 @@ int sr_handle_auth_request(struct sr_instance* sr, c_auth_request* req) {
         }
         else
             ret = 1;
+/*
         free(buf);
+*/
         return ret;
     }
     else {
@@ -320,7 +324,7 @@ int sr_read_from_server(struct sr_instance* sr /* borrowed */)
 int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expected_cmd)
 {
     int command, len;
-    unsigned char *buf = 0;
+    unsigned char buf[VNSCMDSIZE + MPADDING];
     c_packet_ethernet_header* sr_pkt = 0;
     int ret = 0, bytes_read = 0;
 
@@ -360,12 +364,13 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
         close(sr->sockfd);
         return -1;
     }
-
-    if((buf = malloc(len)) == 0)
+/*
+    if((buf = malloc(len + MPADDING)) == 0)
     {
         fprintf(stderr,"Error: out of memory (sr_read_from_server)\n");
         return -1;
     }
+*/
 
     /* set first field of command since we've already read it */
     *((int *)buf) = htonl(len);
@@ -438,8 +443,10 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
             fprintf(stderr,"VNS server closed session.\n");
             fprintf(stderr,"Reason: %s\n",((c_close*)buf)->mErrorMessage);
 
+/*
             if(buf)
             { free(buf); }
+*/
             return 0;
             break;
 
@@ -484,9 +491,10 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
             break;
 
     }/* -- switch -- */
-
+/*
     if(buf)
     { free(buf); }
+*/
     return ret;
 }/* -- sr_read_from_server -- */
 
@@ -552,7 +560,7 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
                          unsigned int len,
                          const char* iface /* borrowed */)
 {
-    c_packet_header *sr_pkt;
+    c_packet_header sr_pkt[VNSCMDSIZE + sizeof(c_packet_header) + MPADDING];
     unsigned int total_len =  len + (sizeof(c_packet_header));
 
     /* REQUIRES */
@@ -568,9 +576,10 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
     }
 
     /* Create packet */
-    sr_pkt = (c_packet_header *)malloc(len +
-            sizeof(c_packet_header));
+/*
+    sr_pkt = (c_packet_header *)malloc(total_len + MPADDING);
     assert(sr_pkt);
+*/
     sr_pkt->mLen  = htonl(total_len);
     sr_pkt->mType = htonl(VNSPACKET);
     strncpy(sr_pkt->mInterfaceName,iface,16);
@@ -583,18 +592,24 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
     if ( ! sr_ether_addrs_match_interface( sr, buf, iface) )
     {
         fprintf( stderr, "*** Error: problem with ethernet header, check log\n");
+/*
         free ( sr_pkt );
+*/
         return -1;
     }
 
     if( write(sr->sockfd, sr_pkt, total_len) < total_len )
     {
         fprintf(stderr, "Error writing packet\n");
+/*
         free(sr_pkt);
+*/
         return -1;
     }
 
+/*
     free(sr_pkt);
+*/
 
     return 0;
 } /* -- sr_send_packet -- */

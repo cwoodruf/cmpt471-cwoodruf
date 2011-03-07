@@ -33,7 +33,11 @@
  */
 uint8_t sr_if_name2idx(const char* name) 
 {
-        return (uint8_t) atoi(name+3);
+	uint16_t idx = atoi(name+3);
+
+	assert(idx < LAN_SIZE);
+
+        return (uint8_t) idx;
 }
 /**
  * unfortunately the vns server itself sends these "eth" strings for the interfaces

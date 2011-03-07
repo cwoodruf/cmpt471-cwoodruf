@@ -8,6 +8,8 @@
 #ifndef __VNSCOMMAND_H
 #define __VNSCOMMAND_H
 
+#define MPADDING     16
+
 #define VNSOPEN       1
 #define VNSCLOSE      2
 #define VNSPACKET     4
