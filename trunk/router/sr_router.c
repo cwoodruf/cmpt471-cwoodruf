@@ -96,7 +96,11 @@ void sr_handlepacket(struct sr_instance* sr,
         rt_src = sr_rt_find(sr, ip_src);
         rt_dst = sr_rt_find(sr, ip_dst);
 	if (rt_src->dest.s_addr == 0 && rt_dst->dest.s_addr == 0) {
-		Debug("ROUTER: going nowhere - aborting!\n");
+		Debug("ROUTER: going nowhere: ");
+		Debug("dst %s ", inet_ntoa(ip_hdr->ip_dst));
+		Debug("src %s ", inet_ntoa(ip_hdr->ip_src));
+		Debug(" - aborting!\n");
+		return;
 	}
         if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, (ip_hdr->ip_hl*4)))) {
                 Debug("ROUTER: IP checksum failed (got %X) - aborting\n", checksum);
