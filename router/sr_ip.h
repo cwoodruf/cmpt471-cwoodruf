@@ -49,12 +49,28 @@ struct sr_icmp_echo_reply
         uint16_t sequence;
 } __attribute__ ((packed)) ;
 
-/** put all icmp structs together */
+/** put all compatible icmp structs together */
 union sr_icmp_fields 
 {
         struct sr_icmp_timeout timeout;
         struct sr_icmp_unreachable nothere;
         struct sr_icmp_echo_reply ping;
+} __attribute__ ((packed)) ;
+
+/** for the icmp version of traceroute - with extra fields
+    http://www.networksorcery.com/enp/protocol/icmp/msg30.htm */
+struct sr_icmp_traceroute
+{
+        uint8_t type;
+        uint8_t code;
+        uint16_t checksum;
+        uint16_t identifier;
+        uint16_t unused;
+        uint16_t out_hops;
+        uint16_t in_hops;
+	uint32_t speed;
+	uint32_t mtu;
+        uint8_t data[IPDATASIZE-20];
 } __attribute__ ((packed)) ;
 
 struct sr_icmp
@@ -97,6 +113,7 @@ union sr_ip_payload
         struct sr_tcp tcp;
         struct sr_udp udp;
         struct sr_icmp icmp;
+	struct sr_icmp_traceroute traceroute;
 } __attribute ((packed)) ;
 
 /** the big data structure */
@@ -108,12 +125,4 @@ struct sr_ip_packet
 } __attribute ((packed)) ;
 /** end cooked ip packet structures */
 
-/** both udp and tcp use this pseudoheader to computer checksums; reserved = 0 always */
-struct sr_pseudoheader {
-        uint32_t src_ip, dest_ip;
-        uint8_t reserved;
-        uint8_t proto;
-        uint16_t len;
-};
-        
 #endif
