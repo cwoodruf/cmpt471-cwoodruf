@@ -98,7 +98,8 @@ int sr_icmp_handler(struct sr_ip_handle* h)
         struct sr_ip_packet* p;
         struct ip* ip;
         uint8_t type;
-        uint16_t len;
+        uint16_t len, hops;
+	struct sr_if* iface;
 
         assert(h); 
         p = h->pkt;
@@ -107,7 +108,7 @@ int sr_icmp_handler(struct sr_ip_handle* h)
 
         switch(type) {
         case ICMP_ECHO_REQUEST: 
-                printf("IP: icmp: got an echo request\n"); 
+                Debug("IP: icmp: got an echo request\n"); 
                 sr_ip_reverse(p,ntohs(ip->ip_len));
                 p->d.icmp.type = 0;
                 p->d.icmp.code = 0;
@@ -115,11 +116,28 @@ int sr_icmp_handler(struct sr_ip_handle* h)
                 len = h->raw_len - sizeof(h->pkt->eth) - sizeof(h->pkt->ip);
                 p->d.icmp.checksum = sr_ip_checksum((uint16_t*) &p->d.icmp, len);
                 return 1;
-        break;
+
+	case ICMP_TRACEROUTE:
+		Debug("IP: icmp: got traceroute request");
+                sr_ip_reverse(p,ntohs(ip->ip_len));
+		p->d.traceroute.checksum = 0;
+		hops = ntohs(p->d.traceroute.in_hops) + 1;
+		Debug("IP: icmp: in_hops now %d\n",hops);
+		p->d.traceroute.in_hops = htons(hops);
+		p->d.traceroute.mtu = htonl(1500); /**  we know this because its ethernet */
+		iface = sr_if_ip2iface(h->sr,ip->ip_src.s_addr);
+		p->d.traceroute.speed = htonl(iface->speed);
+                len = h->raw_len - sizeof(h->pkt->eth) - sizeof(h->pkt->ip);
+                p->d.icmp.checksum = sr_ip_checksum((uint16_t*) &p->d.icmp, len);
+		return 1;
+
+	case ICMP_UNREACHABLE:
+		Debug("IP: icmp: destination unreachable received.");
         default: 
-                printf("IP: icmp: got something else %d\n", type);
+                Debug("IP: icmp: id %d\n", type);
                 /* if the icmp packet is going to an interface abort */
                 if (sr_if_ip2iface(h->sr, ip->ip_dst.s_addr)) return 0;
+		Debug("IP: icmp: forwarding packet\n");
                 return sr_ip_passthru(h);
         }
         return 0;
