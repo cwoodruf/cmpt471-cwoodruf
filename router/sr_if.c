@@ -55,7 +55,9 @@ struct sr_if* sr_if_name2iface(struct sr_instance* sr, const char* name)
 struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip) 
 {
         struct sr_if* i;
-        i = sr->ip2iface[ sr_arp_get_index(ip) ];
+	assert(sr);
+	assert(ip);
+        i = sr->ip2iface[ (ip & 0xFF) ];
         if (i) {
                 if (i->ip == ip) return i;
         }
@@ -198,7 +200,7 @@ void sr_set_ether_ip(struct sr_instance* sr, uint32_t ip_nbo)
     if_walker->ip = ip_nbo;
 
     /** tie the ip to the interface record directly so we don't have to search */
-    sr->ip2iface[ sr_arp_get_index(ip_nbo) ] = if_walker;
+    sr->ip2iface[ (ip_nbo & 0xFF) ] = if_walker;
 
 } /* -- sr_set_ether_ip -- */
 

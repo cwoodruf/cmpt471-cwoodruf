@@ -63,18 +63,6 @@ void sr_arp_check_refresh(struct sr_instance* sr)
 }
 /*---------------------------------------------------------------------------*/
 /** 
-    use a hash to index into the arp table 
-    171.67.245.96/29 - addresses assigned 
-    so if index into 256 entries or 171.67.245.96/24 
-    we should not get collisions with this trivial hashing function
-*/
-uint8_t sr_arp_get_index(uint32_t ip) 
-{
-        assert(ip);
-        return ARP_MASK & ntohl(ip);
-}
-/*---------------------------------------------------------------------------*/
-/** 
     arp setter 
     given an ip and mac address
     refresh the arp entry
@@ -82,8 +70,8 @@ uint8_t sr_arp_get_index(uint32_t ip)
 */
 struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface) 
 {
-        int index = sr_arp_get_index(ip);
-        struct sr_arp* entry = &sr->arp_table[ index ];
+        struct sr_arp* entry = sr_arp_get(sr, ip);
+	struct in_addr n;
 
         assert(sr);
         assert(ip);
@@ -101,7 +89,8 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
         entry->tries = 0;
         time(&entry->created);
 
-        printf("ARP: Created entry %d\n",index);
+	n.s_addr = entry->ip;
+        printf("ARP: Created entry %s\n",inet_ntoa(n));
         /* sr_arp_print_table(sr); */
 
         return entry;
@@ -109,17 +98,32 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
 /*---------------------------------------------------------------------------*/
 /**
     arp getter
+
+    use a hash to index into the arp table based on ip address
+    if there is a collision just go to the next available space 
+    most likely this will never happen with the test setup
+
     @return the arp entry
 */
 struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip) 
 {
-        int index = sr_arp_get_index(ip);
+	int index,i;
+	struct sr_arp* entry;
 
         assert(sr);
         assert(ip);
-        assert(sr->arp_table[ index ].ip = ip);
-        
-        return &sr->arp_table[ index ];
+
+        index = ARP_MASK & ntohl(ip);
+        entry = &sr->arp_table[index];
+	if (entry->ip == ip) return entry;
+
+	/* scan the whole table for an empty entry our the entry for this ip */
+	for (i=index+1; i != index; i++) {
+		if (i >= LAN_SIZE) i = 0;
+		entry = &sr->arp_table[i];
+		if (entry->ip == ip || entry->ip == 0) return entry;
+	}
+	return NULL;
 }
 /*---------------------------------------------------------------------------*/
 /**

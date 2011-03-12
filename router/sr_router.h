@@ -61,7 +61,6 @@ struct sr_instance
 };
 
 /* -- sr_arp.c -- */
-uint8_t sr_arp_get_index(uint32_t ip);
 struct sr_arp* 
         sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface);
 struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip);
