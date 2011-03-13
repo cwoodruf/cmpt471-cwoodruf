@@ -49,6 +49,8 @@ extern char* optarg;
 #define DEFAULT_SERVER "vns-1.stanford.edu"
 #define DEFAULT_RTABLE "rtable"
 #define DEFAULT_TOPO 408
+#define DEFAULT_MASK 0xFFFFFFFC
+#define DEFAULT_SUBNET "171.67.245.96"
 
 static void usage(char* );
 static void sr_init_instance(struct sr_instance* );
@@ -74,12 +76,18 @@ int main(int argc, char **argv)
     unsigned int port = DEFAULT_PORT;
     unsigned int topo = DEFAULT_TOPO;
     char *logfile = 0;
+
+    uint32_t mask = DEFAULT_MASK; 
+    char *subnetstr = DEFAULT_SUBNET;
+    struct in_addr subnetaddr;
+    uint32_t subnet;
+
     (void) signal(SIGINT, sr_main_abort);
 
     printf("Using %s\n", VERSION_INFO);
     
 
-    while ((c = getopt(argc, argv, "ha:s:v:p:u:t:r:l:T:")) != EOF)
+    while ((c = getopt(argc, argv, "ha:s:v:p:u:t:r:l:T:S:M:")) != EOF)
     {
         switch (c)
         {
@@ -114,11 +122,31 @@ int main(int argc, char **argv)
             case 'T':
                 template = optarg;
                 break;
+            case 'S':
+                subnetstr = optarg;
+                break;
+            case 'M':
+                mask = (uint32_t) strtoull((char *) optarg,NULL,16);
+                break;
         } /* switch */
     } /* -- while -- */
 
+    if (inet_aton(subnetstr,&subnetaddr)) {
+        subnet = subnetaddr.s_addr;
+    } else {
+        perror("MAIN: Bad subnet address");
+        exit(1);
+    }
+
     /* -- zero out sr instance -- */
     sr_init_instance(&sr);
+
+    Debug("MAIN: subnet is %lX, %s\n", (long unsigned int) subnet, subnetstr);
+    Debug("MAIN: mask is %lX\n", (long unsigned int) htonl(mask));
+    sr.subnet = subnet;
+    strncpy(sr.subnetstr,subnetstr,16);
+    sr.mask = htonl(mask);
+
 
     /* -- set up routing table from file -- */
     if(template == NULL) {
@@ -192,14 +220,9 @@ static void usage(char* argv0)
     printf("Format: %s [-h] [-v host] [-s server] [-p port] \n",argv0);
     printf("           [-T template_name] [-u username] [-a auth_key_filename]\n");
     printf("           [-t topo id] [-r routing table] \n");
-    printf("           [-l log file] \n");
-#ifdef DEFAULT_USER
-    printf("   defaults server=%s port=%d host=%s topo=%d user=%s\n",
-            DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST, DEFAULT_TOPO, DEFAULT_USER );
-#else
-    printf("   defaults server=%s port=%d host=%s topo=%d \n",
-            DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST, DEFAULT_TOPO );
-#endif
+    printf("           [-l log file] [-S subnet addr (dotted decimal)] [-M subnet mask (hex)]\n");
+    printf("   defaults server=%s port=%d host=%s topo=%d user=%s subnet=%s mask=0x%lX\n",
+            DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST, DEFAULT_TOPO, DEFAULT_USER, DEFAULT_SUBNET, (unsigned long int) DEFAULT_MASK);
 } /* -- usage -- */
 
 /*-----------------------------------------------------------------------------
@@ -239,10 +262,10 @@ void sr_set_user(struct sr_instance* sr)
  *
  *----------------------------------------------------------------------------*/
 void sr_main_abort(int signal) {
-	Debug("MAIN: doing sr_destroy_instance\n");
-	sr_destroy_instance(&sr);
-	Debug("MAIN: sr_destroy_instance finished - exiting\n");
-	exit(0);
+        Debug("MAIN: doing sr_destroy_instance\n");
+        sr_destroy_instance(&sr);
+        Debug("MAIN: sr_destroy_instance finished - exiting\n");
+        exit(0);
 }
 
 static void sr_destroy_instance(struct sr_instance* sr)
@@ -291,6 +314,9 @@ static void sr_init_instance(struct sr_instance* sr)
     memset(sr->interfaces,0,sizeof(struct sr_if*) * LAN_SIZE);
     Debug("MAIN: clearing buffer\n");
     sr_buffer_clear(sr);
+    sr->subnet = 0;
+    sr->mask = 0;
+    sr->arp_init = 0;
 
 } /* -- sr_init_instance -- */
 

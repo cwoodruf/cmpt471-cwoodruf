@@ -68,8 +68,8 @@ struct sr_icmp_traceroute
         uint16_t unused;
         uint16_t out_hops;
         uint16_t in_hops;
-	uint32_t speed;
-	uint32_t mtu;
+        uint32_t speed;
+        uint32_t mtu;
         uint8_t data[IPDATASIZE-20];
 } __attribute__ ((packed)) ;
 
@@ -113,7 +113,7 @@ union sr_ip_payload
         struct sr_tcp tcp;
         struct sr_udp udp;
         struct sr_icmp icmp;
-	struct sr_icmp_traceroute traceroute;
+        struct sr_icmp_traceroute traceroute;
 } __attribute ((packed)) ;
 
 /** the big data structure */

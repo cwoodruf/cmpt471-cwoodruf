@@ -26,16 +26,14 @@
 #include "sr_router.h"
 
 /**
- * get an index into the routing array based on the last character of the name 
- * this is crude and slow so we should save these indices in the routing table
- * for later use
- * TODO: come up with better hashing or numericalizing function
+ * get an index into the routing array based on the last characters of the name 
+ * assumes a name like "eth0" or "eth12"
  */
 uint8_t sr_if_name2idx(const char* name) 
 {
-	uint16_t idx = atoi(name+3);
+        uint16_t idx = atoi(name+3);
 
-	assert(idx < LAN_SIZE);
+        assert(idx < LAN_SIZE);
 
         return (uint8_t) idx;
 }
@@ -55,9 +53,9 @@ struct sr_if* sr_if_name2iface(struct sr_instance* sr, const char* name)
 struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip) 
 {
         struct sr_if* i;
-	assert(sr);
-	assert(ip);
-        i = sr->ip2iface[ (ip & 0xFF) ];
+        assert(sr);
+        assert(ip);
+        i = sr->ip2iface[ (ntohl(ip) & 0xFF) ];
         if (i) {
                 if (i->ip == ip) return i;
         }
@@ -68,19 +66,19 @@ struct sr_if* sr_if_ip2iface(struct sr_instance* sr, uint32_t ip)
  * clear all iface related variables
  */
 void sr_if_clear(struct sr_instance* sr) {
-	int i;
-	assert(sr);
-	for (i=0; i<=LAN_SIZE; i++) {
-		if (sr->interfaces[i]) {
-			free(sr->interfaces[i]);
-			sr->interfaces[i] = 0;
-		}
-		if (sr->ip2iface[i]) {
-			free(sr->ip2iface[i]);
-			sr->ip2iface[i] = 0;
-		}
-	}
-	sr->if_list = 0;
+        int i;
+        assert(sr);
+        for (i=0; i<=LAN_SIZE; i++) {
+                if (sr->interfaces[i]) {
+                        free(sr->interfaces[i]);
+                        sr->interfaces[i] = 0;
+                }
+                if (sr->ip2iface[i]) {
+                        free(sr->ip2iface[i]);
+                        sr->ip2iface[i] = 0;
+                }
+        }
+        sr->if_list = 0;
 }
 /*--------------------------------------------------------------------- 
  * Method: sr_get_interface
@@ -145,7 +143,10 @@ void sr_add_interface(struct sr_instance* sr, const char* name)
     while(if_walker->next)
     {if_walker = if_walker->next; }
     
-    sr->interfaces[ i ] = if_walker->next = (struct sr_if*)malloc(sizeof(struct sr_if));
+    /* we should not overwrite an existing interface */
+    assert(sr->interfaces[i] == 0);
+
+    sr->interfaces[i] = if_walker->next = (struct sr_if*)malloc(sizeof(struct sr_if));
 
     assert(if_walker->next);
     if_walker = if_walker->next;
@@ -200,7 +201,7 @@ void sr_set_ether_ip(struct sr_instance* sr, uint32_t ip_nbo)
     if_walker->ip = ip_nbo;
 
     /** tie the ip to the interface record directly so we don't have to search */
-    sr->ip2iface[ (ip_nbo & 0xFF) ] = if_walker;
+    sr->ip2iface[ (ntohl(ip_nbo) & 0xFF) ] = if_walker;
 
 } /* -- sr_set_ether_ip -- */
 
