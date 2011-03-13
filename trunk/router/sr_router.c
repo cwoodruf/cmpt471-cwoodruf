@@ -61,8 +61,6 @@ void sr_handlepacket(struct sr_instance* sr,
     /* struct sr_if*           iface = sr_get_interface(sr,interface); */
     struct sr_if*           iface = sr_if_name2iface(sr,interface); /* faster */
     struct sr_if*           ipif; /* used to test where traffic is going */
-    struct sr_arp*          arp_src;
-    struct sr_arp*          arp_dst;
     struct sr_ethernet_hdr* e_hdr = 0;
     struct sr_arphdr*       a_hdr = 0;
     struct ip*              ip = 0;
@@ -217,7 +215,7 @@ int sr_router_send(struct sr_ip_handle* h)
  */
 void sr_router_resend(struct sr_instance* sr) {
         struct sr_buffer* b;
-        struct sr_buffer_item* i;
+        struct sr_buffer_item *i, *next;
         struct ip* ip;
         time_t t;
 
@@ -231,16 +229,15 @@ void sr_router_resend(struct sr_instance* sr) {
                         Debug("ROUTER: attempting to resend packet (proto %d, from %s, ",
                                 ip->ip_p, inet_ntoa(ip->ip_src));
                         Debug("to %s)\n", inet_ntoa(ip->ip_dst));
+			next = i->next;
                         if (time(&t) - i->created > PACKET_TOO_OLD) { 
                                 Debug("ROUTER: packet too old - deleting\n");
                                 sr_buffer_remove(sr,i);
-                                continue;
-                        }
-                        if (sr_router_send(&i->h)) {
+                        } else if (sr_router_send(&i->h)) {
                                 Debug("ROUTER: packet successfully sent - deleting\n");
                                 sr_buffer_remove(sr,i);
                         }
-                        i = i->next;
+			i = next;
                 }
         }
 }
