@@ -61,9 +61,11 @@ void sr_handlepacket(struct sr_instance* sr,
     /* struct sr_if*           iface = sr_get_interface(sr,interface); */
     struct sr_if*           iface = sr_if_name2iface(sr,interface); /* faster */
     struct sr_if*           ipif; /* used to test where traffic is going */
+    struct sr_arp*          arp_src;
+    struct sr_arp*          arp_dst;
     struct sr_ethernet_hdr* e_hdr = 0;
     struct sr_arphdr*       a_hdr = 0;
-    struct ip*              ip_hdr = 0;
+    struct ip*              ip = 0;
     struct sr_ip_handle     ip_handler;
     uint16_t                checksum;
     int                     send_result;
@@ -81,14 +83,27 @@ void sr_handlepacket(struct sr_instance* sr,
 /*    Debug("ROUTER: Ethernet destination MAC: "); DebugMAC(e_hdr->ether_dhost); */
 /*    Debug(" ethernet source MAC: "); DebugMAC(e_hdr->ether_shost); Debug("\n"); */
 
+    ip = (struct ip*) (packet + sizeof(struct sr_ethernet_hdr));
     switch (ntohs(e_hdr->ether_type)) 
     {
     case ETHERTYPE_IP:
+        /* this doesn't work because they send packets for machines not in our subnet 
+           with addresses that are valid for our subnet block */
+        if (!(
+              (ip->ip_dst.s_addr & sr->subnet & sr->mask) == sr->subnet || 
+              (ip->ip_src.s_addr & sr->subnet & sr->mask) == sr->subnet
+             )
+        ) { 
+            Debug("ROUTER: IP packet not for our subnet ");
+            Debug("src %s ", inet_ntoa(ip->ip_src));
+            Debug("dst %s ", inet_ntoa(ip->ip_src));
+            Debug("\n");
+            return;
+        }
         Debug("ROUTER: IP packet\n");
-        ip_hdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
-        if ((checksum = sr_ip_checksum((uint16_t*) ip_hdr, (ip_hdr->ip_hl*4)))) {
-                Debug("ROUTER: IP checksum failed (got %X) - aborting\n", checksum);
-                return;
+        if ((checksum = sr_ip_checksum((uint16_t*) ip, (ip->ip_hl*4)))) {
+            Debug("ROUTER: IP checksum failed (got %X) - aborting\n", checksum);
+            return;
         }
 
         memset(&ip_handler,0,sizeof(struct sr_ip_handle));
@@ -100,20 +115,20 @@ void sr_handlepacket(struct sr_instance* sr,
         ip_handler.iface = iface;
 
         /* transmogrify the data we are given and send if we are successful */
-        if (ip_hdr->ip_ttl <= 1) {
+        if (ip->ip_ttl <= 1) {
             Debug("ROUTER: ttl expired!\n");
             if (!sr_icmp_unreachable(&ip_handler)) return;
 
-        } else if (ip_hdr->ip_p == IPPROTO_ICMP) {
+        } else if (ip->ip_p == IPPROTO_ICMP) {
             Debug("ROUTER: ICMP protocol\n");
             if (!sr_icmp_handler(&ip_handler)) return;
 
-        } else if ((ipif = sr_if_ip2iface(sr, ip_hdr->ip_dst.s_addr))) {
+        } else if ((ipif = sr_if_ip2iface(sr, ip->ip_dst.s_addr))) {
             Debug("ROUTER: destination is interface %s\n", ipif->name);
             if (!sr_icmp_unreachable(&ip_handler)) return;
 
         } else {
-            Debug("ROUTER: IP protocol %d\n", ip_hdr->ip_p);
+            Debug("ROUTER: IP protocol %d\n", ip->ip_p);
             if (!sr_ip_handler(&ip_handler)) return;
         }
 
@@ -215,7 +230,7 @@ void sr_router_resend(struct sr_instance* sr) {
                         ip = &i->h.pkt->ip;
                         Debug("ROUTER: attempting to resend packet (proto %d, from %s, ",
                                 ip->ip_p, inet_ntoa(ip->ip_src));
-			Debug("to %s)\n", inet_ntoa(ip->ip_dst));
+                        Debug("to %s)\n", inet_ntoa(ip->ip_dst));
                         if (time(&t) - i->created > PACKET_TOO_OLD) { 
                                 Debug("ROUTER: packet too old - deleting\n");
                                 sr_buffer_remove(sr,i);

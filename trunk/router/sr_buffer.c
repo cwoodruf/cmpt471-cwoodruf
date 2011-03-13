@@ -14,34 +14,34 @@
  */
 struct sr_buffer_item* sr_buffer_malloc(struct sr_instance* sr) 
 {
-	struct sr_buffer_item* b;
-	int i;
+        struct sr_buffer_item* b;
+        int i;
 
-	assert(sr);
+        assert(sr);
 
-	for (i=0; i<BUFFSIZE; i++) {
-		b = &sr->buffer.items[i];
-		if (b->h.buffered == 0) {
-			b->h.raw = sr->buffer.packets[i];
-			b->h.buffered = b;
-			b->pos = i;
-			return b;
-		}
-	}
-	return NULL;
+        for (i=0; i<BUFFSIZE; i++) {
+                b = &sr->buffer.items[i];
+                if (b->h.buffered == 0) {
+                        b->h.raw = sr->buffer.packets[i];
+                        b->h.buffered = b;
+                        b->pos = i;
+                        return b;
+                }
+        }
+        return NULL;
 }
 void sr_buffer_free(struct sr_instance* sr, struct sr_buffer_item* item) 
 {
-	uint8_t* s;
+        uint8_t* s;
 
-	assert(sr);
-	if (!item->h.buffered) return;
-	if (item->pos < 0 || item->pos >= BUFFSIZE) return;
+        assert(sr);
+        if (!item->h.buffered) return;
+        if (item->pos < 0 || item->pos >= BUFFSIZE) return;
 
-	s = sr->buffer.packets[item->pos];
+        s = sr->buffer.packets[item->pos];
 
-	memset(s,0,sizeof(*s));
-	item->h.buffered = 0;
+        memset(s,0,sizeof(*s));
+        item->h.buffered = 0;
 }
 /**
  * initialize the buffer for the interface
@@ -50,9 +50,9 @@ void sr_buffer_clear(struct sr_instance* sr)
 {
         assert(sr);
 
-	memset(&sr->buffer,0,sizeof(struct sr_buffer));
+        memset(&sr->buffer,0,sizeof(struct sr_buffer));
 
-	sr->buffer.start = sr->buffer.end = 0;
+        sr->buffer.start = sr->buffer.end = 0;
 }
 /** 
  * save a packet to the buffer 

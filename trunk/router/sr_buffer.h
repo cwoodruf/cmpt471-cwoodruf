@@ -33,13 +33,13 @@ struct sr_buffer_item
         time_t created;
         struct sr_buffer_item* prev;
         struct sr_buffer_item* next;
-	int    pos;
+        int    pos;
 };
 
 struct sr_buffer 
 {
-	struct sr_buffer_item items[BUFFSIZE];
-	uint8_t packets[BUFFSIZE][VNSCMDSIZE+MPADDING];
+        struct sr_buffer_item items[BUFFSIZE];
+        uint8_t packets[BUFFSIZE][VNSCMDSIZE+MPADDING];
         struct sr_buffer_item* start;
         struct sr_buffer_item* end;
 };

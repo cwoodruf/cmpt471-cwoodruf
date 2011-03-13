@@ -71,7 +71,7 @@ void sr_arp_check_refresh(struct sr_instance* sr)
 struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* mac, struct sr_if* iface) 
 {
         struct sr_arp* entry = sr_arp_get(sr, ip);
-	struct in_addr n;
+        struct in_addr n;
 
         assert(sr);
         assert(ip);
@@ -89,7 +89,7 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
         entry->tries = 0;
         time(&entry->created);
 
-	n.s_addr = entry->ip;
+        n.s_addr = entry->ip;
         printf("ARP: Created entry %s\n",inet_ntoa(n));
         /* sr_arp_print_table(sr); */
 
@@ -107,23 +107,23 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
 */
 struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip) 
 {
-	int index,i;
-	struct sr_arp* entry;
+        int index,i;
+        struct sr_arp* entry;
 
         assert(sr);
         assert(ip);
 
         index = ARP_MASK & ntohl(ip);
         entry = &sr->arp_table[index];
-	if (entry->ip == ip) return entry;
+        if (entry->ip == ip || entry->ip == 0) return entry;
 
-	/* scan the whole table for an empty entry our the entry for this ip */
-	for (i=index+1; i != index; i++) {
-		if (i >= LAN_SIZE) i = 0;
-		entry = &sr->arp_table[i];
-		if (entry->ip == ip || entry->ip == 0) return entry;
-	}
-	return NULL;
+        /* scan the whole table for an empty entry our the entry for this ip */
+        for (i=index+1; i != index; i++) {
+                if (i >= LAN_SIZE) i = 0;
+                entry = &sr->arp_table[i];
+                if (entry->ip == ip || entry->ip == 0) return entry;
+        }
+        return NULL;
 }
 /*---------------------------------------------------------------------------*/
 /**
