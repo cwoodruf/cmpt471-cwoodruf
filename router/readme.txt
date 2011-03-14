@@ -43,8 +43,7 @@ Interfaces are assumed to be of the form "ethN" where N is an integer between
 actual use with the vns network.
 
 The sr_router.c and sr_router.h files tie together packet processing,
-routing and sending. Some "background" processing of arp and buffered 
-packets is initialized in the while loop in sr_main.c. 
+routing and sending. Arp refresh is initialized in the while loop in sr_main.c. 
 
 The system can be tested by changing to the "router" directory and running 
 the "sr_start.sh" script and the "sr_test.sh" script. You should be able to 

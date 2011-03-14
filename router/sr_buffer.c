@@ -32,27 +32,37 @@ struct sr_buffer_item* sr_buffer_malloc(struct sr_instance* sr)
 }
 void sr_buffer_free(struct sr_instance* sr, struct sr_buffer_item* item) 
 {
-        uint8_t* s;
-
         assert(sr);
+/*
         if (!item->h.buffered) return;
         if (item->pos < 0 || item->pos >= BUFFSIZE) return;
+*/
 
-        s = sr->buffer.packets[item->pos];
+        memset(
+		&sr->buffer.packets[item->pos],
+        	0,
+		VNSCMDSIZE+MPADDING
+	);
 
-        memset(s,0,sizeof(*s));
         item->h.buffered = 0;
+	item->h.pkt = 0;
+	item->h.raw = 0;
+	item->pos = -1;
+	item->next = 0;
+	item->prev = 0;
 }
 /**
  * initialize the buffer for the interface
  */
 void sr_buffer_clear(struct sr_instance* sr) 
 {
+	int i;
         assert(sr);
-
         memset(&sr->buffer,0,sizeof(struct sr_buffer));
-
         sr->buffer.start = sr->buffer.end = 0;
+	for (i=0; i<BUFFSIZE; i++) {
+		sr->buffer.items[i].pos = -1;
+	}
 }
 /** 
  * save a packet to the buffer 
@@ -65,7 +75,10 @@ void sr_buffer_add(struct sr_ip_handle* h)
         struct ip* ip;
 
         assert(h);
-        if (h->buffered) return;
+        if (h->buffered) {
+                Debug("BUFFER: packet already buffered\n");
+                return;
+        }
 
         sr = h->sr;
         assert(sr);
@@ -84,8 +97,9 @@ void sr_buffer_add(struct sr_ip_handle* h)
         i->next = 0;
 
         ip = &i->h.pkt->ip;
-        Debug("ROUTER: buffering packet (proto %d, from %s, to %s)\n",
-                ip->ip_p, inet_ntoa(ip->ip_src), inet_ntoa(ip->ip_dst));
+        Debug("BUFFER: saving packet (proto %d", ip->ip_p);
+        Debug(" src %s, ", inet_ntoa(ip->ip_src));
+        Debug("dst %s)\n", inet_ntoa(ip->ip_dst));
         /* we are only item in list */
         if (!b->start)  {
                 b->start = i;

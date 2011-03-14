@@ -201,7 +201,6 @@ int main(int argc, char **argv)
     /* -- whizbang main loop ;-) */
     while( sr_read_from_server(&sr) == 1) { 
         sr_arp_check_refresh(&sr); 
-        sr_router_resend(&sr);
     }
 
     sr_destroy_instance(&sr);
@@ -316,7 +315,6 @@ static void sr_init_instance(struct sr_instance* sr)
     sr_buffer_clear(sr);
     sr->subnet = 0;
     sr->mask = 0;
-    sr->arp_init = 0;
 
 } /* -- sr_init_instance -- */
 
