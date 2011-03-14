@@ -55,7 +55,6 @@ struct sr_instance
     struct sr_if* ip2iface[LAN_SIZE]; /** find interfaces by last octet of ip address */
     struct sr_rt* routing_table; /* routing table */
     time_t arp_lastrefresh; /** last time we ran sr_arp_check_refresh in sr_arp.c */
-    uint8_t arp_init; /** has the arp table already been initialized - so we can lock down getting new entries */
     struct sr_arp arp_table[LAN_SIZE]; /** our local LAN neighbourhood: see sr_arp.h  */
     struct sr_buffer buffer; /** store packets that can't be sent right away */
     char subnetstr[32]; /** how we identify traffic from or to us: printable address */

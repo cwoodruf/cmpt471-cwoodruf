@@ -57,6 +57,15 @@ union sr_icmp_fields
         struct sr_icmp_echo_reply ping;
 } __attribute__ ((packed)) ;
 
+struct sr_icmp
+{
+        uint8_t type;
+        uint8_t code;
+        uint16_t checksum;
+        union sr_icmp_fields fields;
+        uint8_t data[IPDATASIZE-8];
+} __attribute__ ((packed)) ;
+
 /** for the icmp version of traceroute - with extra fields
     http://www.networksorcery.com/enp/protocol/icmp/msg30.htm */
 struct sr_icmp_traceroute
@@ -71,15 +80,6 @@ struct sr_icmp_traceroute
         uint32_t speed;
         uint32_t mtu;
         uint8_t data[IPDATASIZE-20];
-} __attribute__ ((packed)) ;
-
-struct sr_icmp
-{
-        uint8_t type;
-        uint8_t code;
-        uint16_t checksum;
-        union sr_icmp_fields fields;
-        uint8_t data[IPDATASIZE-8];
 } __attribute__ ((packed)) ;
 /** end icmp stuff */
 

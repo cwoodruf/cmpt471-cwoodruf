@@ -85,6 +85,12 @@ void sr_handlepacket(struct sr_instance* sr,
     switch (ntohs(e_hdr->ether_type)) 
     {
     case ETHERTYPE_IP:
+        Debug("ROUTER: IP packet ");
+        Debug("src %s ", inet_ntoa(ip->ip_src));
+        Debug("dst %s ", inet_ntoa(ip->ip_dst));
+        Debug("(src %lX dst %lX subnet %lX)", 
+            (unsigned long int) ip->ip_src.s_addr, (unsigned long int) ip->ip_dst.s_addr, (unsigned long int) sr->subnet);
+        Debug("\n");
         /* this doesn't work because they send packets for machines not in our subnet 
            with addresses that are valid for our subnet block */
         if (!(
@@ -92,13 +98,11 @@ void sr_handlepacket(struct sr_instance* sr,
               (ip->ip_src.s_addr & sr->subnet & sr->mask) == sr->subnet
              )
         ) { 
-            Debug("ROUTER: IP packet not for our subnet ");
-            Debug("src %s ", inet_ntoa(ip->ip_src));
-            Debug("dst %s ", inet_ntoa(ip->ip_src));
-            Debug("\n");
+            Debug("ROUTER: not for our subnet - aborting\n");
             return;
+        } else {
+            Debug("ROUTER: for our subnet - processing\n");
         }
-        Debug("ROUTER: IP packet\n");
         if ((checksum = sr_ip_checksum((uint16_t*) ip, (ip->ip_hl*4)))) {
             Debug("ROUTER: IP checksum failed (got %X) - aborting\n", checksum);
             return;
@@ -130,6 +134,8 @@ void sr_handlepacket(struct sr_instance* sr,
             if (!sr_ip_handler(&ip_handler)) return;
         }
 
+        /* handle any backlog */
+        sr_router_resend(sr);
         /* then try and send it */
         send_result = sr_router_send(&ip_handler);
         Debug("ROUTER: send result %d\n", send_result);
@@ -213,9 +219,10 @@ int sr_router_send(struct sr_ip_handle* h)
  * go through our queue and resend the packets 
  * delete anything too old or successfully sent
  */
-void sr_router_resend(struct sr_instance* sr) {
+void sr_router_resend(struct sr_instance* sr) 
+{
         struct sr_buffer* b;
-        struct sr_buffer_item *i, *next;
+        struct sr_buffer_item *item, *next;
         struct ip* ip;
         time_t t;
 
@@ -223,21 +230,21 @@ void sr_router_resend(struct sr_instance* sr) {
         b = &sr->buffer;
 
         if (b->start) {
-                i = b->start;
-                while (i) {
-                        ip = &i->h.pkt->ip;
+                item = b->start;
+                while (item) {
+                        ip = &item->h.pkt->ip;
+                        next = item->next;
                         Debug("ROUTER: attempting to resend packet (proto %d, from %s, ",
                                 ip->ip_p, inet_ntoa(ip->ip_src));
                         Debug("to %s)\n", inet_ntoa(ip->ip_dst));
-			next = i->next;
-                        if (time(&t) - i->created > PACKET_TOO_OLD) { 
+                        if (time(&t) - item->created > PACKET_TOO_OLD) { 
                                 Debug("ROUTER: packet too old - deleting\n");
-                                sr_buffer_remove(sr,i);
-                        } else if (sr_router_send(&i->h)) {
+                                sr_buffer_remove(sr,item);
+                        } else if (sr_router_send(&item->h)) {
                                 Debug("ROUTER: packet successfully sent - deleting\n");
-                                sr_buffer_remove(sr,i);
+                                sr_buffer_remove(sr,item);
                         }
-			i = next;
+                        item = next;
                 }
         }
 }
