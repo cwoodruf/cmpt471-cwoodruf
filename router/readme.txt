@@ -46,8 +46,9 @@ The sr_router.c and sr_router.h files tie together packet processing,
 routing and sending. Arp refresh is initialized in the while loop in sr_main.c. 
 
 The system can be tested by changing to the "router" directory and running 
-the "sr_start.sh" script and the "sr_test.sh" script. You should be able to 
-access the test urls on the servers while the sr_test.sh script is running.
+the "sr_start.sh" script and the "sr_test.sh" script. Alternatively 
+"make test" will run these scripts.  You should be able to access the test 
+urls on the servers while the sr_test.sh script is running.
 Test that the vns system has started by checking the log files produced by
 sr_start.sh before starting sr_test.sh. The system has been tested on long 
 runs and seemed to be able to stay up indefinitely while under moderately 
