@@ -181,15 +181,18 @@ int sr_router_send(struct sr_ip_handle* h)
         sender = sr_rt_find(h->sr, h->pkt->ip.ip_dst.s_addr );
         arp_entry = sr_arp_get(h->sr, sender->gw.s_addr);
 
-        if (arp_entry->tries > 5) {
+        if (arp_entry->tries >= ARP_MAX_TRIES) {
                 Debug("ROUTER: interface %s is disconnected (tries %d) - aborting\n", 
                         sender->interface, arp_entry->tries);
-                return 0;
+		/* reconfigure message to indicate host is unreachable */
+                if (!sr_icmp_unreachable(h)) return 0;
+
         } else if (arp_entry->tries > 0) {
                 Debug("ROUTER: interface %s arp entry being refreshed (tries %d) buffering packet\n",
                         sender->interface, arp_entry->tries);
                 sr_buffer_add(h);
                 return 0;
+
         }
         Debug("ROUTER: attempting to send packet (size %d bytes) on interface %s\n", 
                 h->len, sender->interface);

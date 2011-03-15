@@ -1,6 +1,10 @@
-#!/bin/sh
-outlog=~/Desktop/`/bin/date +%Y%m%d`
-echo saving output logs to $outlog'.*'
+#!/bin/bash
+srpid=`/bin/pidof sr`
+if [ "$srpid" == "" ] 
+then
+	echo starting sr
+	./sr_start.sh
+fi
 
 echo starting pings
 /bin/ping -q 171.67.245.96 &
