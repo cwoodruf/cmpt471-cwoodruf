@@ -28,6 +28,8 @@ struct sr_arp {
 #define ARP_TTL 60
 /** seconds to wait between arp checks */
 #define ARP_CHECK_EVERY 10
+/** maximum number of tries to make before treating link as dead */
+#define ARP_MAX_TRIES 5
 
 #endif
 
