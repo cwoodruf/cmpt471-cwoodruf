@@ -77,3 +77,6 @@ dist: dist-clean
 
 tags:
 	ctags *.c
+
+test:
+	./sr_test.sh

@@ -4,6 +4,7 @@ if [ "$srpid" == "" ]
 then
 	echo starting sr
 	./sr_start.sh
+	/bin/sleep 5
 fi
 
 echo starting pings
