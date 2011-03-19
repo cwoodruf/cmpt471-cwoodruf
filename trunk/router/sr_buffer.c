@@ -23,13 +23,14 @@ struct sr_buffer_item* sr_buffer_malloc(struct sr_instance* sr)
                 b = &sr->buffer.items[i];
                 if (b->h.buffered == 0) {
                         b->h.raw = sr->buffer.packets[i];
-                        b->h.buffered = b;
+                        b->h.buffered = 1;
                         b->pos = i;
                         return b;
                 }
         }
         return NULL;
 }
+
 void sr_buffer_free(struct sr_instance* sr, struct sr_buffer_item* item) 
 {
         assert(sr);
@@ -72,6 +73,7 @@ void sr_buffer_add(struct sr_ip_handle* h)
         struct sr_instance* sr;
         struct sr_buffer* b;
         struct sr_buffer_item* i;
+	uint8_t *raw;
         struct ip* ip;
 
         assert(h);
@@ -85,12 +87,14 @@ void sr_buffer_add(struct sr_ip_handle* h)
         b = &sr->buffer;
 
         i = sr_buffer_malloc(sr);
+	raw = i->h.raw;
         if (!i) {
                 Debug("BUFFER: out of memory for buffer item - aborting!\n");
                 return;
         }
-        h->buffered = i;
+        h->buffered = 1;
         i->h = *h;
+	i->h.raw = raw;
         memcpy(i->h.raw, h->raw, h->raw_len);
         i->h.pkt = (struct sr_ip_packet*)i->h.raw;
         time(&i->created);

@@ -113,6 +113,7 @@ int sr_icmp_handler(struct sr_ip_handle* h)
                 p->d.icmp.type = 0;
                 p->d.icmp.code = 0;
                 p->d.icmp.checksum = 0;
+Debug("IP: icmp id %X, seq %X\n", ntohs(p->d.icmp.fields.ping.id), ntohs(p->d.icmp.fields.ping.sequence));
                 len = h->raw_len - sizeof(h->pkt->eth) - sizeof(h->pkt->ip);
                 p->d.icmp.checksum = sr_ip_checksum((uint16_t*) &p->d.icmp, len);
                 return 1;

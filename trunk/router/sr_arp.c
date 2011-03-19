@@ -78,20 +78,22 @@ struct sr_arp* sr_arp_set(struct sr_instance* sr, uint32_t ip, unsigned char* ma
         assert(mac);
         assert(iface);
 
-        memset((void *)entry, 0, sizeof(struct sr_arp));
+        memset(entry, 0, sizeof(struct sr_arp));
         entry->ip = ip;
-        memcpy(
-                entry->mac,
-                mac,
-                ETHER_ADDR_LEN
-        );
+	if (mac) {
+		memcpy(
+			entry->mac,
+			mac,
+			ETHER_ADDR_LEN
+		);
+	}
         entry->iface = iface;
         entry->tries = 0;
         time(&entry->created);
 
         n.s_addr = entry->ip;
         printf("ARP: Created entry %s\n",inet_ntoa(n));
-        /* sr_arp_print_table(sr); */
+        sr_arp_print_table(sr);
 
         return entry;
 }
@@ -132,6 +134,8 @@ struct sr_arp* sr_arp_get(struct sr_instance* sr, uint32_t ip)
 void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface) 
 {
         int i;
+	struct in_addr s_ip;
+	struct sr_arp *entry;
         uint8_t packet[
                 sizeof(struct sr_ethernet_hdr) + 
                 sizeof(struct sr_arphdr)
@@ -169,6 +173,15 @@ void sr_arp_refresh(struct sr_instance* sr, uint32_t ip, char* interface)
         a_hdr->ar_sip = iface->ip;
         memcpy(a_hdr->ar_tha, sr_arp_get(sr,ip), ETHER_ADDR_LEN);
         a_hdr->ar_tip = ip;
+
+	/* make an arp entry to avoid sending loads of requests */
+	entry = sr_arp_get(sr, ip);
+	if (entry && !entry->ip) {
+		s_ip.s_addr = ip;
+		Debug("ARP: creating dummy entry for %s\n", inet_ntoa(s_ip));
+		entry->ip = ip;
+		entry->tries++;
+	}
 
         /* send the packet and cross our fingers! */
         sr_send_packet(sr, packet, sizeof(packet), interface);

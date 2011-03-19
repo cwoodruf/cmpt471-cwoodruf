@@ -16,15 +16,14 @@
 /**
  * data structure to pass into the sr_ip.c functions
  */
-struct sr_buffer_item;
 struct sr_ip_handle {
     struct sr_instance*         sr;
     uint8_t*                    raw;
     unsigned int                raw_len;
     struct sr_ip_packet*        pkt;
     unsigned int                len;
-    struct sr_buffer_item*      buffered;
     struct sr_if*               iface;
+    uint8_t                     buffered;
 };
 
 struct sr_buffer_item 

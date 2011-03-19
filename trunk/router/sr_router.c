@@ -110,9 +110,9 @@ void sr_handlepacket(struct sr_instance* sr,
 
         memset(&ip_handler,0,sizeof(struct sr_ip_handle));
         ip_handler.sr = sr;
+        ip_handler.pkt = (struct sr_ip_packet*) packet;
         ip_handler.raw = packet;
         ip_handler.raw_len = len;
-        ip_handler.pkt = (struct sr_ip_packet*) packet;
         ip_handler.len = len;
         ip_handler.iface = iface;
 
@@ -136,7 +136,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
         /* handle any backlog */
         sr_router_resend(sr);
-        /* then try and send it */
+        /* then try and send packet */
         send_result = sr_router_send(&ip_handler);
         Debug("ROUTER: send result %d\n", send_result);
 
@@ -152,6 +152,8 @@ void sr_handlepacket(struct sr_instance* sr,
         case ARP_REPLY:
             Debug("ROUTER: ARP reply - update ARP table\n");
             sr_arp_set(sr, a_hdr->ar_sip, a_hdr->ar_sha, iface);
+            /* handle any backlog */
+            sr_router_resend(sr); 
         break;
         default:
             Debug("ROUTER: ARP ERROR: don't know what %d is!\n", a_hdr->ar_op);
@@ -181,7 +183,14 @@ int sr_router_send(struct sr_ip_handle* h)
         sender = sr_rt_find(h->sr, h->pkt->ip.ip_dst.s_addr );
         arp_entry = sr_arp_get(h->sr, sender->gw.s_addr);
 
-        if (arp_entry->tries >= ARP_MAX_TRIES) {
+	if (!arp_entry->ip) {
+                Debug("ROUTER: interface %s arp entry does not exist - buffering packet\n",
+                        sender->interface);
+                sr_buffer_add(h);
+		sr_arp_refresh(h->sr, sender->gw.s_addr, sender->interface);
+                return 0;
+
+        } else if (arp_entry->tries >= ARP_MAX_TRIES) {
                 Debug("ROUTER: interface %s is disconnected (tries %d) - sending unreachable packet\n", 
                         sender->interface, arp_entry->tries);
 		/* reconfigure message to indicate host is unreachable */
@@ -221,7 +230,11 @@ int sr_router_send(struct sr_ip_handle* h)
         Debug(") Destination IP %s (recv mac ", inet_ntoa(h->pkt->ip.ip_dst));
         DebugMAC(eth->ether_dhost);
         Debug(")\n");
-        sr_send_packet(h->sr, h->raw, h->len, sender->interface);
+        if (sr_send_packet(h->sr, h->raw, h->len, sender->interface) == -1) {
+		Debug("ROUTER: error sending packet - dropping\n"); /* - buffering\n"); */
+                /* sr_buffer_add(h);
+		return 0; */
+	}
         return 1;
 }
 
@@ -251,7 +264,7 @@ void sr_router_resend(struct sr_instance* sr)
                                 Debug("ROUTER: packet too old - deleting\n");
                                 sr_buffer_remove(sr,item);
                         } else if (sr_router_send(&item->h)) {
-                                Debug("ROUTER: packet successfully sent - deleting\n");
+                                Debug("ROUTER: packet successfully sent - deleting\n"); 
                                 sr_buffer_remove(sr,item);
                         }
                         item = next;

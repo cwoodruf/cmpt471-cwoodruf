@@ -212,7 +212,7 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
 
     /** see sr_arp.c - cal */
     printf("VNSCOMM: Sending arp broadcasts on each interface\n");
-    sr_arp_scan(sr);
+    /** sr_arp_scan(sr); */
     /** end sr_arp.c code */
 
     return num_entries;
