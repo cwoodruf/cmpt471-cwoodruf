@@ -1,20 +1,24 @@
 #!/bin/bash
+/usr/bin/killall sr
 srpid=`/bin/pidof sr`
 if [ "$srpid" == "" ] 
 then
 	echo starting sr
 	./sr_start.sh
 	/bin/sleep 5
+	echo double ping ARP test
+	/bin/ping -c 3 171.67.245.103
+	/bin/ping -c 3 171.67.245.103
 fi
 
-echo starting pings
+echo starting background pings \(stress test\)
 /bin/ping -q 171.67.245.96 &
 /bin/ping -q 171.67.245.100 &
 /bin/ping -q 171.67.245.101 &
 /bin/ping -q 171.67.245.102 &
 /bin/ping -q 171.67.245.103 &
 
-echo traceroutes
+echo tracepaths
 /usr/bin/tracepath -n 171.67.245.96
 /usr/bin/tracepath -n 171.67.245.100
 /usr/bin/tracepath -n 171.67.245.101
