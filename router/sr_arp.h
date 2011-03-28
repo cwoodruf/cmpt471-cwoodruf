@@ -25,7 +25,7 @@ struct sr_arp {
 #define LAN_SIZE (ARP_MASK+1)
 
 /** seconds arp entry is allowed to be valid: normally this is 10 min to 4 hours depending on system */
-#define ARP_TTL 60
+#define ARP_TTL 600
 /** seconds to wait between arp checks */
 #define ARP_CHECK_EVERY 10
 /** maximum number of tries to make before treating link as dead */
