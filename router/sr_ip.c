@@ -60,23 +60,37 @@ int sr_icmp_unreachable(struct sr_ip_handle* h)
 {
         uint8_t data[ICMP_TIMEOUT_SIZE];
 	struct sr_rt *receiver;
+	struct sr_if *iface;
         struct sr_ip_packet* p;
+	struct sr_instance *sr;
+	uint32_t dst;
 
         assert(h);
         p = h->pkt;
+	sr = h->sr;
+	dst = p->ip.ip_dst.s_addr;
 
         /* copy the ip header and 64 bits of the original datagram */
         memcpy(data, (uint8_t*) &p->ip, ICMP_TIMEOUT_SIZE);
 
-	receiver = sr_rt_find(h->sr, p->ip.ip_dst.s_addr);
-	p->ip.ip_dst.s_addr = h->sr->interfaces[ receiver->ifidx ]->ip;
+	/* if the packet is going someplace else then change the destination addr to here */
+	iface = sr_if_ip2iface(sr, dst);
+	if (!iface) {
+		receiver = sr_rt_find(h->sr, dst);
+		p->ip.ip_dst.s_addr = h->sr->interfaces[ receiver->ifidx ]->ip;
+	}
 
         /* then reverse ip information so we can send the packet back */
 	sr_ip_reverse(p, (20 /*ip*/ + 8 /*icmp*/ + 32 /*data*/));
 
         /* create the icmp packet */
-        p->d.icmp.type = ICMP_TIME_EXCEEDED; /* ICMP_UNREACHABLE; */
-        p->d.icmp.code = 0; /* ICMP_PORT_UNAVAILABLE; */
+	if (iface) {
+		p->d.icmp.type = ICMP_UNREACHABLE;
+		p->d.icmp.code = ICMP_PORT_UNAVAILABLE;
+	} else {
+		p->d.icmp.type = ICMP_TIME_EXCEEDED; /* ICMP_UNREACHABLE; */
+		p->d.icmp.code = 0; /* ICMP_PORT_UNAVAILABLE; */
+	}
 
         /* 0 = no checksum */
         /* icmp messages don't have to have checksums: to say you have a checksum of 0 use all 1s */
